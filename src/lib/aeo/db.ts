@@ -3,6 +3,7 @@ const state = globalThis as typeof globalThis & { aeoPool?: pg.Pool };
 export const db: pg.Pool = (state.aeoPool ??= new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   max: 5,
+  options: '-c timezone=UTC',
   statement_timeout: 10000,
   idle_in_transaction_session_timeout: 10000,
 }));

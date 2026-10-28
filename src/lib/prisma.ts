@@ -1138,7 +1138,11 @@ function getClient() {
 
   const baseAdapter = new PrismaPg(
     // Two bounded computations retain one connection for authorization, leases and queue metadata.
-    { connectionString: url, ...(isAnalyticsWorker() ? { max: 3 } : {}) },
+    {
+      connectionString: url,
+      options: '-c timezone=UTC',
+      ...(isAnalyticsWorker() ? { max: 3 } : {}),
+    },
     { schema },
   );
 
@@ -1158,7 +1162,10 @@ function getClient() {
     return baseClient;
   }
 
-  const replicaAdapter = new PrismaPg({ connectionString: replicaUrl }, { schema });
+  const replicaAdapter = new PrismaPg(
+    { connectionString: replicaUrl, options: '-c timezone=UTC' },
+    { schema },
+  );
 
   const replicaClient = new PrismaClient({
     adapter: replicaAdapter,

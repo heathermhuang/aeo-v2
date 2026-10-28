@@ -215,6 +215,36 @@ async function main() {
       !JSON.stringify(exported).includes('ip_hash'),
     'export omits raw and hashed visitor IPs',
   );
+  const receipt = await fetch(origin + '/api/send', {
+    method: 'POST',
+    headers: {
+      origin: 'https://alpha-aeo.com',
+      'Content-Type': 'application/json',
+      'User-Agent': 'Mozilla/5.0 Synthetic AEO acceptance',
+    },
+    body: JSON.stringify({
+      type: 'event',
+      payload: {
+        website: a.site,
+        hostname: 'alpha-aeo.com',
+        url: 'https://alpha-aeo.com/acceptance',
+        title: 'Synthetic acceptance only',
+        language: 'en',
+        screen: '1280x720',
+        webdriver: true,
+      },
+    }),
+  });
+  check(receipt.status === 200, 'public tracker intake records a synthetic browser event');
+  const received = (await request(a, `sites/${a.site}/summary`)).body;
+  check(
+    Math.abs(Date.now() - Date.parse(received.traffic.lastReceivedAt)) < 60000,
+    'received event time has no host-timezone drift',
+  );
+  check(
+    received.traffic.pageviews === null,
+    'an automated receipt cannot manufacture qualified traffic',
+  );
   const beta = (await request(b, `sites/${b.site}/summary`)).body;
   check(
     beta.answers.length === 0 && beta.crawl.inventory === 0,

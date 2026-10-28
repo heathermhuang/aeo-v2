@@ -3,6 +3,9 @@ on:
   push:
     branches: [main, 'codex/**']
   pull_request:
+concurrency:
+  group: aeo-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
