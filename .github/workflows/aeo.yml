@@ -44,6 +44,15 @@ jobs:
       - run: pnpm exec prisma migrate deploy
       - run: pnpm exec node scripts/liekan-migrate.mjs
       - run: pnpm aeo:migrate
+      - name: Exercise a non-UTC database default
+        run: |
+          node --input-type=module <<'NODE'
+          import pg from 'pg';
+          const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+          await client.connect();
+          await client.query("ALTER DATABASE aeo_v2_candidate SET timezone TO 'Asia/Singapore'");
+          await client.end();
+          NODE
       - run: pnpm build:packages
       - run: pnpm exec tsc --noEmit
       - run: pnpm test:aeo
