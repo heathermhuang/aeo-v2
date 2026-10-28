@@ -32,7 +32,7 @@ export default async function ({ children }) {
   return (
     <html lang={initialLocale} className={`${inter.className} ${inter.variable}`}>
       <head>
-        <link rel="icon" type="image/svg+xml" href="/liekan/favicon.svg" />
+        <link rel="icon" type="image/svg+xml" href="/aeo-icon.svg" />
         <link rel="manifest" href="/site.webmanifest" crossOrigin="use-credentials" />
         <meta name="msapplication-TileColor" content="#da532c" />
         <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
@@ -52,7 +52,7 @@ export default async function ({ children }) {
 
 export async function generateMetadata(): Promise<Metadata> {
   const headerStore = await headers();
-  const name = liekanProduct.name;
+  const name = 'AEO';
 
   return {
     metadataBase: getBaseUrl(headerStore),

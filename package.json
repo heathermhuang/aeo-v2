@@ -1,7 +1,7 @@
 {
   "name": "liekan",
   "version": "1.2.0",
-  "description": "面向 GEO 增长的 AI 与搜索流量分析系统",
+  "description": "\u9762\u5411 GEO \u589e\u957f\u7684 AI \u4e0e\u641c\u7d22\u6d41\u91cf\u5206\u6790\u7cfb\u7edf",
   "author": "Liekan contributors",
   "license": "MIT",
   "type": "module",
@@ -89,7 +89,12 @@
     "test:analytics-rollups": "node tests/liekan/analysis-rollups.integration.mjs",
     "liekan:check-demo": "node scripts/liekan-check-demo.mjs",
     "liekan:export-demo": "node scripts/liekan-export-demo.mjs",
-    "test:default-demo": "node tests/liekan/default-demo.integration.mjs"
+    "test:default-demo": "node tests/liekan/default-demo.integration.mjs",
+    "aeo:env": "node scripts/aeo/dev-environment.mjs",
+    "aeo:migrate": "node scripts/aeo/migrate.mjs",
+    "aeo:dev": "dotenv -e .env.local -- next dev --hostname 127.0.0.1 --port 3102",
+    "test:aeo": "vitest run src/lib/aeo/contracts.test.ts",
+    "test:aeo:acceptance": "dotenv -e .env.local -- tsx tests/aeo/acceptance.ts"
   },
   "cacheDirectories": [
     ".next/cache"

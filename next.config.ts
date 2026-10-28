@@ -96,6 +96,15 @@ const headers = [
   },
 ];
 
+// AEO session endpoints must never inherit the upstream API's cache policy.
+headers.push({
+  source: '/api/aeo/:path*',
+  headers: [
+    { key: 'Cache-Control', value: 'private, no-store' },
+    { key: 'Vary', value: 'Cookie' },
+  ],
+});
+
 if (isProd) {
   headers.push({
     source: TRACKER_SCRIPT,
