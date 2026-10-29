@@ -89,6 +89,7 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/db ./db
+COPY --from=builder /app/config ./config
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing

@@ -10,6 +10,10 @@ test('container preserves AEO routing and includes migration data', async () => 
   const dockerfile = await readFile(new URL('Dockerfile', root), 'utf8');
   assert.doesNotMatch(dockerfile, /COPY\s+docker\/proxy\.ts/);
   assert.match(dockerfile, /COPY --from=builder \/app\/db \.\/db/);
+  assert.ok(
+    dockerfile.includes('COPY --from=builder /app/config ./config'),
+    'container includes upstream migration manifest',
+  );
 });
 
 async function startup(failAt = '') {
