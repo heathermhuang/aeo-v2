@@ -52,9 +52,10 @@ for uid, user in users.items():
     accounts.append({'legacyId': uid, 'email': user['email'].strip().lower(), 'eligible': eligible})
 brands = {r['id']: r for r in rows('brands')}
 checks = {r['id']: r for r in rows('checks')}
+answers = {r['id']: r for r in rows('answers')}
 # Only evidence tables with a direct, auditable ownership chain are portable.
-portable = ['brands', 'checks', 'answers', 'prompts', 'prompt_universe_items',
-            'content_assets', 'evidence_atoms', 'source_ledger', 'page_briefs',
+portable = ['brands', 'checks', 'answers', 'citations', 'competitors', 'tasks', 'engines', 'prompts', 'prompt_universe_items',
+            'content_assets', 'content_versions', 'distribution_sources', 'geo_experiments', 'evidence_atoms', 'source_ledger_entries', 'page_briefs',
             'citation_selection_events', 'citation_absorption_events',
             'geo_correction_tasks', 'confirmed_profile_snapshots']
 records = []
@@ -63,11 +64,17 @@ for table in portable:
         if 'id' not in row:
             raise ValueError('Evidence row has no stable identity: ' + table)
         brand_id = row['id'] if table == 'brands' else row.get('brand_id')
+        if not brand_id and row.get('answer_id'):
+            brand_id = checks.get(answers.get(row['answer_id'], {}).get('check_id'), {}).get('brand_id')
         if not brand_id and row.get('check_id'):
             brand_id = checks.get(row['check_id'], {}).get('brand_id')
         owner_id = brands.get(brand_id, {}).get('user_id')
         if owner_id not in users:
             owner_id = None  # preserve unowned evidence without granting customer access
+        if row.get('check_id') and checks.get(row['check_id'], {}).get('brand_id') != brand_id:
+            owner_id = None
+        if row.get('created_by_user_id') and row['created_by_user_id'] != owner_id:
+            owner_id = None
         if row.get('user_id') and row['user_id'] != owner_id:
             owner_id = None  # conflicting ownership remains operator-held
         payload = json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(',', ':'))

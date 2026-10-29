@@ -53,3 +53,19 @@ Earlier unchanged full-suite results are reused until runtime changes require fr
 
 The pending user questions concern real-site scope, dedicated provider access/spend,
 and independent tester evidence. They do not block upstream or identity preparation.
+
+## Execution checkpoint
+
+- Upstream storage/queue/runtime/probe tests: 220 passed, including isolated PostgreSQL.
+  Upgrade applied migrations 057–065 twice; pre-existing evidence counts were preserved.
+- Identity: 32 synthetic checks; archive claims/access: 10 synthetic checks; unit/container/
+  relay regressions passed. The first native CI found a missing private scratch directory
+  in the new archive fixture; setup was corrected and rerun. No acceptance gate was relaxed.
+- The approved complete v1 export restored into SQLite with integrity/foreign-key checks.
+  The portable archive preserves 18 accounts and 1,515 evidence records; 9 accounts are
+  eligible for fresh proof. No real customer identity was claimed or mailed.
+- The user authorized the AEO-only mail relay and the exact private production backup.
+  The relay is deployed with a dedicated secret generated on the AEO host; Node transport
+  reaches it. Unauthorized and invalid-template calls are rejected without sending mail.
+- Real-site scope, dedicated answer-provider credential/spend and independent tester
+  evidence remain pending. Production replacement remains held; provider limits are zero.

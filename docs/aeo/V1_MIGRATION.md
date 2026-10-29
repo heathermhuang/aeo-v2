@@ -37,8 +37,8 @@ publish customer evidence or send account mail to customers.
    credentials, network identifiers and access-bearing links. Stored originals and
    raw hashes remain unchanged. No historical score becomes a current v2 claim.
 
-The real local rehearsal imported 18 accounts (9 eligible) and 1,093 evidence
-records. Every stored raw record and hash matched the portable source. Exact replay
+The real local rehearsal imported 18 accounts (9 eligible) and 1,515 evidence
+records, including citation and source-ledger relationships. Every stored raw record and hash matched the portable source. Exact replay
 passed. No real account was claimed and no live metrics or paid provider calls were
 created. Synthetic fixtures separately verify cross-account denial, eligible recovery,
 held identities, unchanged raw evidence and failed-import rollback.

@@ -58,7 +58,7 @@ jobs:
       - run: pnpm test:aeo
       - run: pnpm exec tsx tests/aeo/identity.ts
       - run: pnpm exec tsx tests/aeo/legacy.ts
-      - run: node --test tests/aeo/mail-relay.test.mjs
+      - run: node --test tests/aeo/mail-relay.test.mjs tests/aeo/v1-export.test.mjs
       - run: node --test tests/aeo/container.test.mjs
       - run: pnpm build:tracker
       - run: pnpm build:app
