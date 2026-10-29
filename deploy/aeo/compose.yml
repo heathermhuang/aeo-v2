@@ -1,0 +1,58 @@
+name: aeo-v2-staging
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aeo_v2
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a dedicated database password}
+      POSTGRES_DB: aeo_v2_staging
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U aeo_v2 -d aeo_v2_staging']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  app:
+    image: ${AEO_IMAGE:?Set the tested image tag or digest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://aeo_v2:${POSTGRES_PASSWORD}@db:5432/aeo_v2_staging
+      APP_SECRET: ${APP_SECRET:?Set a dedicated application secret}
+      TWO_FACTOR_ENCRYPTION_KEY: ${TWO_FACTOR_ENCRYPTION_KEY:?Set a dedicated encryption key}
+      AEO_PUBLIC_URL: https://${AEO_STAGING_HOST:?Set the staging hostname}
+      AEO_SIGNUP_ENABLED: 'true'
+      AEO_ANSWER_DAILY_LIMIT: '0'
+      AEO_ANSWER_INSTALLATION_DAILY_LIMIT: '0'
+      CLIENT_IP_HEADER: x-real-ip
+      DEFAULT_LOCALE: en-US
+      DISABLE_TELEMETRY: '1'
+      NEXT_TELEMETRY_DISABLED: '1'
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, http://127.0.0.1:3000/api/aeo/health]
+      interval: 20s
+      timeout: 10s
+      start_period: 120s
+      retries: 5
+  ingress:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      AEO_STAGING_HOST: ${AEO_STAGING_HOST}
+      AEO_STAGING_PASSWORD_HASH: ${AEO_STAGING_PASSWORD_HASH:?Set the staging access password hash}
+    ports: ['80:80', '443:443']
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  postgres:
+  caddy_data:
+  caddy_config:
