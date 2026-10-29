@@ -107,6 +107,8 @@ jobs:
           for i in $(seq 1 30); do docker exec aeo-db pg_isready -U aeo_v2 -d aeo_v2_candidate && break; sleep 1; done
           docker run -d --name aeo-app --network aeo-acceptance -p 127.0.0.1:3102:3000 -e DATABASE_URL=postgresql://aeo_v2:acceptance-only@aeo-db:5432/aeo_v2_candidate -e AEO_PUBLIC_URL -e AEO_SIGNUP_ENABLED -e APP_SECRET aeo-v2:acceptance
           node --input-type=module -e 'for(let i=0;i<90;i++){try{if((await fetch(process.env.AEO_PUBLIC_URL+"/api/aeo/health")).ok)process.exit(0);}catch{}await new Promise(r=>setTimeout(r,1000));}process.exit(1);'
+          docker exec aeo-app test -s /app/LICENSE
+          docker exec aeo-app test -s /app/THIRD_PARTY_NOTICES.md
           pnpm exec tsx tests/aeo/acceptance.ts
       - name: Record container startup diagnostics
         if: always()

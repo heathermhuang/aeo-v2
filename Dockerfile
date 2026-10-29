@@ -93,6 +93,7 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/db ./db
 COPY --from=builder /app/config ./config
+COPY --from=builder /app/LICENSE /app/THIRD_PARTY_NOTICES.md ./
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
