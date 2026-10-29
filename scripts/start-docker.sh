@@ -12,5 +12,7 @@ set -e
 export PATH="$PWD/node_modules/.bin:$PATH"
 
 node scripts/check-db.js
+node scripts/liekan-migrate.mjs
+node scripts/aeo/migrate.mjs
 node scripts/update-tracker.js
 exec node server.js
