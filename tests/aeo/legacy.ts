@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID, randomBytes } from 'node:crypto';
-import { writeFile, readFile } from 'node:fs/promises';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { db } from '../../src/lib/aeo/db';
 import { signup, recover, completeIdentity } from '../../src/lib/aeo/auth';
@@ -38,6 +38,7 @@ async function prove(address: string, fromV1 = false) {
   return user.user_id;
 }
 try {
+  await mkdir('.local', { recursive: true });
   const metrics = (
     await db.query(
       'SELECT (SELECT count(*)::int FROM aeo_answer_run) AS answers,(SELECT count(*)::int FROM website_event) AS receipts',
