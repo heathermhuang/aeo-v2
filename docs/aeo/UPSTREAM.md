@@ -7,3 +7,23 @@ The MIT license and existing Umami and Liekan copyright notices remain in LICENS
 The AEO customer interface is src/components/aeo and src/app/page.tsx. AEO sessions, tenancy and API orchestration are src/lib/aeo and src/app/api/aeo. Upstream collection, traffic-quality views, crawler classification, import deduplication and immutable migrations remain in their original directories. The unchanged factory administrator is disabled by an additive AEO migration; customized operator identities are preserved.
 
 Origin is heathermhuang/aeo-v2. The yaojingang/GEOInflow upstream is read-only. Upstream development instructions and publication permissions do not transfer to this independent fork.
+
+## Integration on 2026-10-29
+
+Reviewed main `5d66c239670689f83c52d8b7f30c4020d9a02ea2` (11 commits after
+our base). Integrated the application changes as a reviewed patch: migrations
+057–065 with their original checksums, retention/queue safety, dashboard dependency
+and scheduling improvements, and singular/plural Cloudflare destination probes.
+AEO's four-view UI, private route allowlist, UTC connections, image startup and
+license notices are retained. Inherited storage/administration routes remain blocked.
+
+Excluded upstream-only public-history workflow, publication/push scripts, policy,
+script aliases and upstream development instructions. They encode the publisher's
+own remotes and independent-history requirements, not this fork's release policy.
+The execution checkout has an upstream fetch remote and a disabled push URL.
+No maintainer contact, endorsement or upstream PR is implied.
+
+Retention is not activated for AEO: this deployment does not run the upstream
+analytics worker and exposes no retention mutation API. If that worker is enabled
+later, AEO requires an explicit retention enablement setting before its pump runs.
+Raw receipts, logs, imports, answer evidence and legacy archives are preserved.

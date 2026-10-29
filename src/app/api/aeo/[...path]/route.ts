@@ -1,10 +1,13 @@
 import { z } from 'zod';
+import { legacyReports, legacyReport } from '@/lib/aeo/legacy';
 import { db } from '@/lib/aeo/db';
 import { runAnswer, answerJobs } from '@/lib/aeo/answers';
 import { AeoError, body, sameOrigin, uuid } from '@/lib/aeo/contracts';
 import {
   signup,
   login,
+  recover,
+  completeIdentity,
   cookie,
   principal,
   tokenFrom,
@@ -42,12 +45,35 @@ async function handle(request: Request, { params }: { params: Promise<{ path: st
       await db.query('SELECT token_hash FROM aeo_session LIMIT 0');
       return json({ status: 'ok', product: 'AEO v2', billingEnabled: false });
     }
-    if (['signup', 'login'].includes(path[0]) && path.length === 1 && method === 'POST') {
-      const token = await (path[0] === 'signup' ? signup : login)(await body(request));
+    if (path.length === 1 && method === 'POST') {
+      if (path[0] === 'signup') return json(await signup(await body(request)), 202);
+      if (path[0] === 'recover') return json(await recover(await body(request)), 202);
+      if (path[0] === 'login') {
+        const token = await login(await body(request));
+        return json({ ok: true }, 200, { 'Set-Cookie': cookie(token) });
+      }
+    }
+    if (path.join('/') === 'identity/complete' && method === 'POST') {
+      const token = await completeIdentity(await body(request));
       return json({ ok: true }, 200, { 'Set-Cookie': cookie(token) });
     }
     const user = await principal(request);
     if (path.join('/') === 'session' && method === 'GET') return json(await account(user));
+    if (path.join('/') === 'legacy/reports' && method === 'GET')
+      return json({ reports: await legacyReports(user.id) });
+    if (path.length === 4 && path[0] === 'legacy' && path[1] === 'reports' && method === 'GET')
+      return json(
+        await legacyReport(
+          user.id,
+          uuid.parse(path[2]),
+          z
+            .string()
+            .regex(/^[A-Za-z0-9_-]{1,128}$/)
+            .parse(path[3]),
+        ),
+        200,
+        { 'Content-Disposition': 'attachment; filename="aeo-v1-historical-report.json"' },
+      );
     if (path.join('/') === 'logout' && method === 'POST') {
       await db.query('DELETE FROM aeo_session WHERE token_hash=$1', [digest(tokenFrom(request))]);
       return json({ ok: true }, 200, { 'Set-Cookie': cookie('', true) });

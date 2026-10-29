@@ -82,9 +82,10 @@ export async function addMember(userId: string, teamId: string, input: unknown) 
     if (count >= LIMITS.members)
       throw new AeoError(429, 'This workspace has reached its member limit.');
     const member = (
-      await tx.query('SELECT user_id FROM "user" WHERE username=$1 AND deleted_at IS NULL', [
-        data.email.toLowerCase(),
-      ])
+      await tx.query(
+        'SELECT u.user_id FROM "user" u JOIN aeo_identity i ON i.user_id=u.user_id AND i.email=u.username WHERE u.username=$1 AND u.deleted_at IS NULL',
+        [data.email.toLowerCase()],
+      )
     ).rows[0];
     if (!member) throw new AeoError(400, 'Ask this person to create an AEO account first.');
     if (member.user_id === userId) throw new AeoError(400, 'Your owner access is already active.');

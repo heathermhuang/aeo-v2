@@ -19,15 +19,22 @@ export const email = z
   .email()
   .max(254)
   .transform(v => v.toLowerCase().trim());
+export const passwordInput = z
+  .string()
+  .min(12)
+  .max(72)
+  .refine(v => Buffer.byteLength(v) <= 72, 'Use at most 72 UTF-8 bytes.');
 export const accountInput = z
   .object({
     email,
-    password: z
-      .string()
-      .min(12)
-      .max(72)
-      .refine(v => Buffer.byteLength(v) <= 72, 'Use at most 72 UTF-8 bytes.'),
     workspace: z.string().trim().min(2).max(50).optional(),
+  })
+  .strict();
+export const proofInput = z
+  .object({
+    token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+    purpose: z.enum(['verify', 'recover']),
+    password: passwordInput,
   })
   .strict();
 export const loginInput = z.object({ email, password: z.string().min(1).max(72) }).strict();

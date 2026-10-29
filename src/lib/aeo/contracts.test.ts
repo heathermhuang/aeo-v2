@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { isAeoSurface } from './surface';
-import { domain, sameOrigin, body, accountInput, safeAnswer } from './contracts';
+import { domain, sameOrigin, body, accountInput, proofInput, safeAnswer } from './contracts';
 describe('AEO input and browser boundaries', () => {
   it('blocks inherited management paths that bypass SaaS quotas', () => {
     for (const p of [
@@ -67,7 +67,8 @@ describe('AEO input and browser boundaries', () => {
       }).success,
     ).toBe(false);
     expect(
-      accountInput.safeParse({ email: 'person@example.com', password: '界'.repeat(25) }).success,
+      proofInput.safeParse({ token: 'a'.repeat(43), purpose: 'verify', password: '界'.repeat(25) })
+        .success,
     ).toBe(false);
   });
   it('accepts raw captured text but never caller-supplied provenance', () => {

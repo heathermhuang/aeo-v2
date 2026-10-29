@@ -26,6 +26,8 @@ services:
       TWO_FACTOR_ENCRYPTION_KEY: ${TWO_FACTOR_ENCRYPTION_KEY:?Set a dedicated encryption key}
       AEO_PUBLIC_URL: https://${AEO_STAGING_HOST:?Set the staging hostname}
       AEO_SIGNUP_ENABLED: 'true'
+      AEO_EMAIL_RELAY_URL: ${AEO_EMAIL_RELAY_URL:-}
+      AEO_EMAIL_RELAY_KEY: ${AEO_EMAIL_RELAY_KEY:-}
       AEO_ANSWER_DAILY_LIMIT: '0'
       AEO_ANSWER_INSTALLATION_DAILY_LIMIT: '0'
       CLIENT_IP_HEADER: x-real-ip

@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { db } from '../../src/lib/aeo/db';
+import { signup as beginSignup } from '../../src/lib/aeo/auth';
+import type { IdentityMessage } from '../../src/lib/aeo/mail';
 import { runAnswer } from '../../src/lib/aeo/answers';
 const origin = process.env.AEO_PUBLIC_URL!;
 if (
@@ -53,10 +55,19 @@ async function request(
 }
 async function signup(label: string): Promise<Actor> {
   const actor = { email: `aeo-${label}-${stamp}@example.com`, cookie: '' };
-  const { response } = await request(null, 'signup', 'POST', {
-    email: actor.email,
+  let message: IdentityMessage | undefined;
+  await beginSignup(
+    { email: actor.email, workspace: `Acceptance ${label} ${stamp}` },
+    async mail => {
+      message = mail;
+    },
+  );
+  check(Boolean(message), 'synthetic email proof captured without sending mail');
+  await request(null, 'login', 'POST', { email: actor.email, password }, 401);
+  const { response } = await request(null, 'identity/complete', 'POST', {
+    token: message!.token,
+    purpose: message!.purpose,
     password,
-    workspace: `Acceptance ${label} ${stamp}`,
   });
   actor.cookie = response.headers.get('set-cookie')!.split(';')[0];
   check(response.headers.get('set-cookie')!.includes('HttpOnly'), 'session is HttpOnly');

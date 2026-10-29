@@ -10,7 +10,13 @@ try {
   await client.query(
     'CREATE TABLE IF NOT EXISTS aeo_migration(name text PRIMARY KEY,checksum char(64) NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())',
   );
-  for (const name of ['001_saas.sql', '002_disable_factory_admin.sql', '003_rate_expiry.sql']) {
+  for (const name of [
+    '001_saas.sql',
+    '002_disable_factory_admin.sql',
+    '003_rate_expiry.sql',
+    '004_identity.sql',
+    '005_legacy_archive.sql',
+  ]) {
     const sql = await readFile(new URL('../../db/aeo/' + name, import.meta.url), 'utf8'),
       checksum = createHash('sha256').update(sql).digest('hex');
     const { rows } = await client.query('SELECT checksum FROM aeo_migration WHERE name=$1', [name]);

@@ -52,6 +52,9 @@ ARG NODE_OPTIONS
 ARG PNPM_VERSION
 ARG PRISMA_VERSION
 
+ARG AEO_REVISION=unknown
+LABEL org.opencontainers.image.revision=$AEO_REVISION org.opencontainers.image.title="AEO v2" org.opencontainers.image.licenses="MIT"
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS=$NODE_OPTIONS

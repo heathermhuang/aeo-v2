@@ -18,7 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import styles from './AeoApp.module.css';
-type View = 'overview' | 'answers' | 'crawl' | 'traffic' | 'connect' | 'members';
+type View = 'overview' | 'answers' | 'crawl' | 'traffic' | 'connect' | 'members' | 'archive';
 const nav = [
   { id: 'overview', label: 'Overview', icon: ChartNoAxesCombined },
   { id: 'answers', label: 'AI answers', icon: MessageSquare },
@@ -39,7 +39,7 @@ const stamp = (value: string) => (value ? new Date(value).toLocaleString() : 'No
 const value = (n: number | null) => (n === null ? '—' : n.toLocaleString());
 export default function AeoApp() {
   const [session, setSession] = useState<any>(undefined),
-    [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+    [authMode, setAuthMode] = useState<'login' | 'signup' | 'recover'>('signup');
   const [workspaceId, setWorkspaceId] = useState(''),
     [sites, setSites] = useState<any[]>([]),
     [siteId, setSiteId] = useState(''),
@@ -55,6 +55,8 @@ export default function AeoApp() {
   const [connection, setConnection] = useState<any>(null),
     [people, setPeople] = useState<any[]>([]),
     [answerId, setAnswerId] = useState('');
+  const [proof, setProof] = useState<{ token: string; purpose: string } | null>(null);
+  const [historical, setHistorical] = useState<any[]>([]);
   const generation = useRef(0);
   async function loadSession() {
     const data = await api('session');
@@ -62,6 +64,18 @@ export default function AeoApp() {
     setWorkspaceId(data.workspaces[0]?.id || '');
   }
   useEffect(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const token = fragment.get('account'),
+      purpose = fragment.get('purpose');
+    if (token) {
+      window.history.replaceState(null, '', window.location.pathname);
+      if (/^[A-Za-z0-9_-]{43}$/.test(token) && ['verify', 'recover'].includes(purpose || '')) {
+        setProof({ token, purpose: purpose! });
+        setSession(null);
+        return;
+      }
+      setError('This link is invalid. Request a new email link.');
+    }
     loadSession().catch(() => setSession(null));
   }, []);
   useEffect(() => {
@@ -162,6 +176,12 @@ export default function AeoApp() {
       setBusy(false);
     }
   }
+  useEffect(() => {
+    if (session && view === 'archive')
+      api('legacy/reports')
+        .then(data => setHistorical(data.reports))
+        .catch(e => setError(e.message));
+  }, [session, view]);
   async function refresh() {
     const id = siteId,
       current = generation.current;
@@ -172,15 +192,34 @@ export default function AeoApp() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     await perform(async () => {
-      await api(authMode, {
-        method: 'POST',
-        body: JSON.stringify({
-          email: String(form.get('email')).trim(),
-          password: form.get('password'),
-          ...(authMode === 'signup' ? { workspace: form.get('workspace') } : {}),
-        }),
-      });
-      await loadSession();
+      if (proof) {
+        await api('identity/complete', {
+          method: 'POST',
+          body: JSON.stringify({ ...proof, password: form.get('password') }),
+        });
+        setProof(null);
+        await loadSession();
+      } else if (authMode === 'login') {
+        await api('login', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: String(form.get('email')).trim(),
+            password: form.get('password'),
+          }),
+        });
+        await loadSession();
+      } else {
+        await api(authMode, {
+          method: 'POST',
+          body: JSON.stringify({
+            email: String(form.get('email')).trim(),
+            ...(authMode === 'signup' ? { workspace: form.get('workspace') } : {}),
+          }),
+        });
+        setNotice(
+          'If this email is eligible, a link is on its way. Open it within 30 minutes to choose your password.',
+        );
+      }
     });
   }
   async function addSite(event: FormEvent<HTMLFormElement>) {
@@ -230,11 +269,13 @@ export default function AeoApp() {
     workspace = session?.workspaces.find(w => w.id === workspaceId),
     readOnly = workspace?.role === 'team-view-only';
   const heading =
-    view === 'connect'
-      ? 'Connect your website'
-      : view === 'members'
-        ? 'Workspace members'
-        : nav.find(n => n.id === view)?.label || 'Overview';
+    view === 'archive'
+      ? 'Historical AEO v1 reports'
+      : view === 'connect'
+        ? 'Connect your website'
+        : view === 'members'
+          ? 'Workspace members'
+          : nav.find(n => n.id === view)?.label || 'Overview';
   if (session === undefined)
     return (
       <div className={styles.wait} role="status">
@@ -277,31 +318,41 @@ export default function AeoApp() {
             </p>
           </section>
           <section className={styles.authPanel}>
-            <div className={styles.tabs}>
-              <button
-                type="button"
-                aria-pressed={authMode === 'signup'}
-                onClick={() => {
-                  setAuthMode('signup');
-                  setError('');
-                }}
-              >
-                Create workspace
-              </button>
-              <button
-                type="button"
-                aria-pressed={authMode === 'login'}
-                onClick={() => {
-                  setAuthMode('login');
-                  setError('');
-                }}
-              >
-                Sign in
-              </button>
-            </div>
-            <h2>{authMode === 'signup' ? 'Start with your website.' : 'Welcome back.'}</h2>
+            {!proof && (
+              <div className={styles.tabs}>
+                <button
+                  type="button"
+                  aria-pressed={authMode === 'signup'}
+                  onClick={() => {
+                    setAuthMode('signup');
+                    setError('');
+                  }}
+                >
+                  Create workspace
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={authMode === 'login'}
+                  onClick={() => {
+                    setAuthMode('login');
+                    setError('');
+                  }}
+                >
+                  Sign in
+                </button>
+              </div>
+            )}
+            <h2>
+              {proof
+                ? 'Choose your password.'
+                : authMode === 'recover'
+                  ? 'Restore your access.'
+                  : authMode === 'signup'
+                    ? 'Start with your website.'
+                    : 'Welcome back.'}
+            </h2>
             <form onSubmit={authenticate}>
-              {authMode === 'signup' && (
+              {!proof && authMode === 'signup' && (
                 <label>
                   Workspace name
                   <input
@@ -314,22 +365,26 @@ export default function AeoApp() {
                   />
                 </label>
               )}
-              <label>
-                Email
-                <input type="email" name="email" autoComplete="username" required />
-              </label>
-              <label>
-                Password
-                <input
-                  type="password"
-                  name="password"
-                  autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
-                  minLength={authMode === 'signup' ? 12 : 1}
-                  maxLength={72}
-                  required
-                />
-                {authMode === 'signup' && <small>At least 12 characters.</small>}
-              </label>
+              {!proof && (
+                <label>
+                  Email
+                  <input type="email" name="email" autoComplete="username" required />
+                </label>
+              )}
+              {(proof || authMode === 'login') && (
+                <label>
+                  {proof ? 'New password' : 'Password'}
+                  <input
+                    type="password"
+                    name="password"
+                    autoComplete={proof ? 'new-password' : 'current-password'}
+                    minLength={proof ? 12 : 1}
+                    maxLength={72}
+                    required
+                  />
+                  {proof && <small>At least 12 characters. Choose a password only you know.</small>}
+                </label>
+              )}
               {error && (
                 <p className={styles.error} role="alert">
                   {error}
@@ -337,12 +392,32 @@ export default function AeoApp() {
               )}
               <button className={styles.primary} disabled={busy}>
                 {busy
-                  ? 'Opening workspace…'
-                  : authMode === 'signup'
-                    ? 'Create workspace'
-                    : 'Sign in'}
+                  ? 'Please wait…'
+                  : proof
+                    ? 'Confirm and open workspace'
+                    : authMode === 'login'
+                      ? 'Sign in'
+                      : 'Send email link'}
                 <ArrowRight size={16} />
               </button>
+              {notice && <p role="status">{notice}</p>}
+              {!proof && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('recover');
+                    setError('');
+                    setNotice('');
+                  }}
+                >
+                  Forgot password or moving from AEO v1?
+                </button>
+              )}
+              {proof && (
+                <p className={styles.quiet}>
+                  Confirming this email resets account access and signs out other sessions.
+                </p>
+              )}
               <p className={styles.quiet}>Candidate release · billing is off</p>
             </form>
           </section>
@@ -443,6 +518,10 @@ export default function AeoApp() {
             <Users size={17} />
             Members
           </button>
+          <button onClick={() => setView('archive')}>
+            <Download size={17} />
+            V1 reports
+          </button>
           <span title={session.user.email}>{session.user.email}</span>
           <button
             onClick={() =>
@@ -471,7 +550,7 @@ export default function AeoApp() {
             <h1>{heading}</h1>
           </div>
           <div className={styles.headerActions}>
-            {siteId && view !== 'members' && (
+            {siteId && !['members', 'archive'].includes(view) && (
               <>
                 <button
                   className={styles.secondary}
@@ -535,7 +614,7 @@ export default function AeoApp() {
               </p>
             </section>
           )}
-          {!sites.length && !loading && !adding && view !== 'members' && (
+          {!sites.length && !loading && !adding && !['members', 'archive'].includes(view) && (
             <section className={styles.empty}>
               <div className={styles.emptyIcon}>
                 <Globe size={30} />
@@ -1154,6 +1233,53 @@ export default function AeoApp() {
               </section>
             </>
           )}
+          {view === 'archive' && (
+            <section className={styles.setup}>
+              <h2>Your original evidence stays separate.</h2>
+              <p>
+                These are historical v1 reports. Their measurements have not been revalidated as v2
+                observations. Downloads remove private access material; original records and source
+                hashes are retained.
+              </p>
+              {!historical.length && (
+                <p>
+                  No historical reports are linked to this verified email. Imports and quarantined
+                  identities need operator review; creating an account does not claim unverified v1
+                  data.
+                </p>
+              )}
+              <div className={styles.sourceRows}>
+                {historical.map(r => (
+                  <div key={r.sourceId + r.id}>
+                    <span>
+                      {r.id}
+                      <small>{stamp(r.createdAt)} · Historical v1 evidence</small>
+                    </span>
+                    <button
+                      className={styles.secondary}
+                      onClick={() =>
+                        perform(async () => {
+                          const payload = await api(`legacy/reports/${r.sourceId}/${r.id}`);
+                          const url = URL.createObjectURL(
+                            new Blob([JSON.stringify(payload, null, 2)], {
+                              type: 'application/json',
+                            }),
+                          );
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'aeo-v1-historical-report.json';
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        })
+                      }
+                    >
+                      Download
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
           {view === 'members' && (
             <>
               <section className={styles.pageIntro}>
@@ -1228,7 +1354,7 @@ export default function AeoApp() {
           )}
           <footer className={styles.footer}>
             <span>
-              {report && view !== 'members'
+              {report && !['members', 'archive'].includes(view)
                 ? `${report.window} · Updated ${stamp(report.generatedAt)}`
                 : 'Private workspace · Billing is off'}
             </span>

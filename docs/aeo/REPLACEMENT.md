@@ -22,7 +22,7 @@ The acceptance report must identify the exact revision, build, database and runt
 ## Required before replacing aeo.io
 
 1. Deploy this exact candidate on a staging origin with persistent PostgreSQL, HTTPS and an ingress configuration that strips untrusted identity headers before setting trusted values. Confirm migrations, readiness and restore from backup there.
-2. Integrate verified account access and recovery. The candidate's email/password signup does not verify email ownership and does not migrate the existing passwordless AEO identities. Public cutover requires a verified identity/recovery flow and an explicit v1 account migration rehearsal.
+2. Integrate verified account access and recovery. The ownership/recovery code now requires email proof and provides a guarded v1 archive claim path. Live inbox delivery/recovery and the final v1 delta/cutover still require acceptance. Public cutover requires a verified identity/recovery flow and an explicit v1 account migration rehearsal.
 3. Configure a dedicated answer-provider credential, one allowed model and explicit workspace/installation usage allowances. Test real answer collection and failure handling with a bounded approved allowance. Collection stays off without these values.
 4. Connect an authorized real website, server/CDN logs, inventory and actual conversion instrumentation. Confirm timestamps, classification/verification limits, supported referrer attribution and missing-data behavior.
 5. Rehearse export and restoration of v1 reports. Preserve raw v1 evidence and provenance; do not relabel imported records as v2 observations. Keep v1 available read-only during transition.
@@ -36,3 +36,5 @@ The Docker image must also be built and started successfully before container de
 AEO_ANSWER_API_KEY is a dedicated OpenRouter credential. AEO_ANSWER_MODEL selects one server-owned model. AEO_ANSWER_DAILY_LIMIT sets the workspace daily attempt allowance (maximum 30). AEO_ANSWER_INSTALLATION_DAILY_LIMIT sets the total installation allowance (maximum 100). Both allowances must be positive to perform work. Daily allowances reset on the UTC calendar day; analytics windows cover the last 30 elapsed days. API responses are labelled; the current collector requests no search and does not represent a consumer interface.
 
 Keep credentials out of source, screenshots, reports and test fixtures. Do not share credentials across projects. No provider call is enabled by a browser-supplied key, model, tenant or billing entitlement.
+
+The ordered 2026-10-29 continuation is recorded in [execution](EXECUTION_20261029.md), [identity](IDENTITY.md) and [v1 migration](V1_MIGRATION.md). Implementation and operator tests do not satisfy the remaining real-site, bounded live-provider or independent customer acceptance gates.
