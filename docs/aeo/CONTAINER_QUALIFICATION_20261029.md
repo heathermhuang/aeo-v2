@@ -50,7 +50,9 @@ was not provisioned; a cheaper $12/month, 2 GB plan was proposed with compilatio
 kept off-host. Paid droplet creation requires approval of the selected plan.
 
 No droplet, staging DNS record or production cutover had been created when
-this qualification was recorded. Hosted HTTPS/ingress checks, verified account
+this initial container qualification was recorded. The subsequently approved
+staging deployment and hosted checks are recorded in
+[the staging qualification](STAGING_QUALIFICATION_20261029.md). Verified account
 ownership and recovery, bounded dedicated live-provider collection, authorized
 real-site evidence, and v1 account/report migration and rollback remain required
 before replacing aeo.io. See [replacement acceptance](REPLACEMENT.md).

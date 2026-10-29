@@ -17,7 +17,9 @@ or production routes are changed by this setup.
    Compose and a firewall allowing SSH, HTTP and HTTPS. No public database or
    app port is needed. Do not attach another project's keys or credentials.
 3. Copy `compose.yml` and `Caddyfile` into `/opt/aeo-v2`. Load the tested image.
-   Write `/opt/aeo-v2/.env` with mode 0600. It must contain `AEO_IMAGE`,
+   Generate dedicated secrets directly on the host and write `/opt/aeo-v2/.env`
+   with mode 0600. Do not upload a local environment or reuse v1 credentials.
+   The environment must contain `AEO_IMAGE`,
    `AEO_STAGING_HOST`, random hex `POSTGRES_PASSWORD`, `APP_SECRET`,
    `TWO_FACTOR_ENCRYPTION_KEY`, and a bcrypt `AEO_STAGING_PASSWORD_HASH`.
    Escape dollar signs in the bcrypt hash for Compose, or single-quote its
@@ -57,3 +59,6 @@ database. Never use `docker compose down -v` against the retained database.
 
 This is a staging runbook. Public replacement remains subject to
 [the replacement acceptance requirements](../../docs/aeo/REPLACEMENT.md).
+
+The approved $12/month deployment and hosted evidence are recorded in
+[the staging qualification](../../docs/aeo/STAGING_QUALIFICATION_20261029.md).
