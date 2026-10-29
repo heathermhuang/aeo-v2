@@ -128,3 +128,11 @@ changed in the v1 domain's operational setup.
    routing/rollback with old/new release identities. Then replace aeo.io only when all
    required gates pass. No routine approval gate is added to the already-authorized
    cutover; these are outstanding evidence, access and financial boundaries.
+
+## Subsequent source-access follow-through
+
+The [source reconnection record](SOURCE_RECONNECTION_20261029.md) corrects the initial
+Cloudflare access assessment: the existing grant can retrieve request aggregates and
+live Worker receipts without a new token or upgrade. A real Plate.hk sample was
+imported. GA4 renewal is prepared at the same read-only scope and is waiting at
+Google's unverified-testing-client warning for the required human security step.

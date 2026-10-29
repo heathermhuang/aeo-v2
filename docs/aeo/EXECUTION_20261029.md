@@ -71,3 +71,8 @@ and independent tester evidence. They do not block upstream or identity preparat
   evidence remain pending. Production replacement remains held; provider limits are zero.
 
 The completed operator qualification, approved live inbox/provider work, final migration evidence and exact remaining cutover boundaries are consolidated in [final qualification](FINAL_QUALIFICATION_20261029.md). Production replacement has not occurred.
+
+The user's subsequent request to restore sources end to end is recorded in
+[SOURCE_RECONNECTION_20261029.md](SOURCE_RECONNECTION_20261029.md). Cloudflare's supported
+free access paths work; the immediate remaining authentication step is Google's human
+security-warning handoff, with a read-only callback prepared.
