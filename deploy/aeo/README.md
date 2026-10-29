@@ -1,8 +1,11 @@
 # AEO v2 DigitalOcean staging
 
 Staging uses one dedicated Singapore droplet, local persistent PostgreSQL and
-Caddy HTTPS. The selected `s-2vcpu-4gb` plan was $24/month ($0.03571/hour), with
-80 GB disk, when queried on 2026-10-29. Recheck the API before provisioning.
+Caddy HTTPS. The proposed lightweight `s-1vcpu-2gb` plan was $12/month
+($0.01786/hour), with 50 GB disk, when queried on 2026-10-29. Recheck the API
+before provisioning and obtain explicit approval of the chosen paid plan.
+Build images off-host and upload them; this small host is intended for light
+staging traffic, not compilation or load testing. Configure 2 GB of swap.
 Provider calls are disabled. No v1 database, accounts, reports, DNS root record
 or production routes are changed by this setup.
 
