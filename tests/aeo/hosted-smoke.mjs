@@ -10,7 +10,14 @@ const access = JSON.parse(await readFile('.local/hosted-staging-access.json', 'u
 assert.equal(access.origin, origin, 'credentials belong to this exact staging origin');
 const authorization =
   'Basic ' + Buffer.from(`${access.username}:${access.password}`).toString('base64');
-const stamp = randomUUID().slice(0, 8);
+const identity = JSON.parse(await readFile('.local/hosted-identity-fixture.json', 'utf8'));
+assert.equal(identity.origin, origin);
+assert.equal(identity.synthetic, true);
+assert.ok(
+  Date.now() - Date.parse(identity.createdAt) < 15 * 60 * 1000,
+  'fresh synthetic proof fixtures required',
+);
+const stamp = identity.stamp;
 const password = randomBytes(24).toString('hex');
 let checks = 0;
 function check(condition, label) {
@@ -45,11 +52,13 @@ async function request(actor, path, method = 'GET', data, status = 200, extra = 
   return { response, data: await response.json() };
 }
 async function signup(label) {
-  const email = `hosted-${label}-${stamp}@example.test`;
-  const { response } = await request(null, 'signup', 'POST', {
-    email,
+  const fixture = identity.accounts[label];
+  assert.ok(fixture?.email?.endsWith('@example.test'), 'synthetic email only');
+  const email = fixture.email;
+  const { response } = await request(null, 'identity/complete', 'POST', {
+    token: fixture.token,
+    purpose: fixture.purpose,
     password,
-    workspace: `Synthetic hosted ${label} ${stamp}`,
   });
   const setCookie = response.headers.get('set-cookie');
   check(
