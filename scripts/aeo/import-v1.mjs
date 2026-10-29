@@ -60,7 +60,7 @@ if (!file || !expectedDatabase || !expectedSnapshot)
 const url = new URL(process.env.DATABASE_URL);
 if (
   url.pathname !== '/' + expectedDatabase ||
-  !/^aeo_v2_(candidate|migration_rehearsal|staging)$/.test(expectedDatabase)
+  !/^aeo_v2_(candidate|migration_rehearsal|migration_rehearsal_utc|staging)$/.test(expectedDatabase)
 )
   throw new Error(
     'Explicit candidate/rehearsal/staging database required; production import is not enabled',

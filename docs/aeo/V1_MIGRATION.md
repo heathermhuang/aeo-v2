@@ -59,3 +59,5 @@ is incompatible, route the old image to the restored database; never overwrite t
 live volume or use `compose down -v`. Production route replacement remains blocked
 on real-site/provider evidence, independent task acceptance and final migration/delta
 and route rehearsal. No production route was changed by this local rehearsal.
+
+Timestamp metadata from SQLite is exported with an explicit UTC offset for browser display, while raw source text/hashes remain unchanged. The final UTC rehearsal uses a separately named `aeo_v2_migration_rehearsal_utc` database; earlier rehearsals are retained.

@@ -38,3 +38,5 @@ AEO_ANSWER_API_KEY is a dedicated OpenRouter credential. AEO_ANSWER_MODEL select
 Keep credentials out of source, screenshots, reports and test fixtures. Do not share credentials across projects. No provider call is enabled by a browser-supplied key, model, tenant or billing entitlement.
 
 The ordered 2026-10-29 continuation is recorded in [execution](EXECUTION_20261029.md), [identity](IDENTITY.md) and [v1 migration](V1_MIGRATION.md). Implementation and operator tests do not satisfy the remaining real-site, bounded live-provider or independent customer acceptance gates.
+
+See the [final 2026-10-29 operator qualification](FINAL_QUALIFICATION_20261029.md) for live inbox recovery, the three-call provider pilot, authorized real-site evidence, hosted viewport tests and remaining production gates.

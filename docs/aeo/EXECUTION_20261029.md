@@ -69,3 +69,5 @@ and independent tester evidence. They do not block upstream or identity preparat
   reaches it. Unauthorized and invalid-template calls are rejected without sending mail.
 - Real-site scope, dedicated answer-provider credential/spend and independent tester
   evidence remain pending. Production replacement remains held; provider limits are zero.
+
+The completed operator qualification, approved live inbox/provider work, final migration evidence and exact remaining cutover boundaries are consolidated in [final qualification](FINAL_QUALIFICATION_20261029.md). Production replacement has not occurred.

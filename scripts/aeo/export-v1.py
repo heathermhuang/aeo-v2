@@ -58,6 +58,17 @@ portable = ['brands', 'checks', 'answers', 'citations', 'competitors', 'tasks', 
             'content_assets', 'content_versions', 'distribution_sources', 'geo_experiments', 'evidence_atoms', 'source_ledger_entries', 'page_briefs',
             'citation_selection_events', 'citation_absorption_events',
             'geo_correction_tasks', 'confirmed_profile_snapshots']
+def source_timestamp(value):
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+        # V1 SQLite CURRENT_TIMESTAMP values are UTC, even without an offset.
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+    except ValueError:
+        return None  # raw evidence retains malformed/unknown source values
 records = []
 for table in portable:
     for row in rows(table):
@@ -79,7 +90,7 @@ for table in portable:
             owner_id = None  # conflicting ownership remains operator-held
         payload = json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
         records.append({'kind': table, 'legacyId': row['id'], 'ownerId': owner_id,
-                        'brandId': brand_id, 'createdAt': row.get('created_at'),
+                        'brandId': brand_id, 'createdAt': source_timestamp(row.get('created_at')),
                         'raw': payload, 'sha256': hashlib.sha256(payload.encode()).hexdigest()})
 archive = {'format': 'aeo-v1-archive/1', 'source': {
     'snapshotSha256': hashlib.sha256(raw).hexdigest(), 'releaseId': args.release,

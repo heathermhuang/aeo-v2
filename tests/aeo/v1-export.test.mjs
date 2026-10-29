@@ -10,7 +10,7 @@ test('v1 exporter preserves citations/source-ledger chains and holds unverified 
 CREATE TABLE auth_credentials(user_id TEXT,disabled_at TEXT);INSERT INTO auth_credentials VALUES('owner',NULL);
 CREATE TABLE auth_email_verifications(user_id TEXT,verified_at TEXT);INSERT INTO auth_email_verifications VALUES('owner','2026-10-29');
 CREATE TABLE brands(id TEXT,user_id TEXT);INSERT INTO brands VALUES('brand','owner');
-CREATE TABLE checks(id TEXT,brand_id TEXT,report_json TEXT);INSERT INTO checks VALUES('check','brand','{"answer":"original"}');
+CREATE TABLE checks(id TEXT,brand_id TEXT,report_json TEXT,created_at TEXT);INSERT INTO checks VALUES('check','brand','{"answer":"original"}','2026-10-29 03:00:00');
 CREATE TABLE answers(id TEXT,check_id TEXT);INSERT INTO answers VALUES('answer','check');
 CREATE TABLE citations(id TEXT,answer_id TEXT,url TEXT);INSERT INTO citations VALUES('citation','answer','https://public.example');
 CREATE TABLE source_ledger_entries(id TEXT,brand_id TEXT);INSERT INTO source_ledger_entries VALUES('ledger','brand');
@@ -42,6 +42,11 @@ CREATE TABLE legacy_account_quarantine(user_id TEXT);INSERT INTO legacy_account_
     assert.equal(JSON.parse(record.raw).id, record.legacyId);
   }
   assert.equal(archive.records.find(r => r.kind === 'citations').brandId, 'brand');
+  assert.equal(archive.records.find(r => r.kind === 'checks').createdAt, '2026-10-29T03:00:00Z');
+  assert.equal(
+    JSON.parse(archive.records.find(r => r.kind === 'checks').raw).created_at,
+    '2026-10-29 03:00:00',
+  );
   assert.ok(!JSON.stringify(archive.records).includes('auth_credentials'));
 });
 test('v1 SQL import cannot attach a filesystem database', async () => {
