@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, writeFile, readFile } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -52,7 +52,8 @@ CREATE TABLE legacy_account_quarantine(user_id TEXT);INSERT INTO legacy_account_
 test('v1 SQL import cannot attach a filesystem database', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'aeo-v1-guard-'));
   const input = join(dir, 'v1.sql');
-  await writeFile(input, "ATTACH DATABASE '/private/tmp/unapproved-aeo-db.sqlite' AS outside;");
+  const outside = join(dir, 'unapproved.sqlite');
+  await writeFile(input, `ATTACH DATABASE '${outside.replaceAll("'", "''")}' AS outside;`);
   const run = spawnSync(
     'python3',
     [
@@ -69,4 +70,5 @@ test('v1 SQL import cannot attach a filesystem database', async () => {
     { encoding: 'utf8' },
   );
   assert.notEqual(run.status, 0, 'filesystem attach refused');
+  await assert.rejects(access(outside), { code: 'ENOENT' });
 });
