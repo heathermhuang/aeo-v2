@@ -31,7 +31,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/api-client/node_modules ./packages/api-client/node_modules
 COPY --from=deps /app/packages/mcp/node_modules ./packages/mcp/node_modules
 COPY . .
-COPY docker/proxy.ts ./src
+# Keep src/proxy.ts: AEO's hosted route boundary must match native builds.
 
 ARG BASE_PATH
 
@@ -52,6 +52,9 @@ ARG NODE_OPTIONS
 ARG PNPM_VERSION
 ARG PRISMA_VERSION
 
+ARG AEO_REVISION=unknown
+LABEL org.opencontainers.image.revision=$AEO_REVISION org.opencontainers.image.title="AEO v2" org.opencontainers.image.licenses="MIT"
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS=$NODE_OPTIONS
@@ -71,7 +74,7 @@ RUN echo {} > package.json
 RUN printf "allowBuilds:\n  '@prisma/engines': true\n  prisma: false\nverifyDepsBeforeRun: false\n" > pnpm-workspace.yaml
 
 # Script dependencies
-RUN pnpm add npm-run-all dotenv chalk semver \
+RUN pnpm add npm-run-all dotenv chalk semver pg@8.23.1 \
     prisma@${PRISMA_VERSION} \
     @prisma/client@${PRISMA_VERSION} \
     @prisma/adapter-pg@${PRISMA_VERSION}
@@ -88,6 +91,9 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/generated ./generated
+COPY --from=builder /app/db ./db
+COPY --from=builder /app/config ./config
+COPY --from=builder /app/LICENSE /app/THIRD_PARTY_NOTICES.md ./
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing

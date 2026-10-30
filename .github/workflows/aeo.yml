@@ -1,0 +1,122 @@
+name: AEO candidate acceptance
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+concurrency:
+  group: aeo-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: aeo_v2
+          POSTGRES_PASSWORD: acceptance-only
+          POSTGRES_DB: aeo_v2_candidate
+        ports: ['15472:5432']
+        options: >-
+          --health-cmd "pg_isready -U aeo_v2 -d aeo_v2_candidate"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://aeo_v2:acceptance-only@127.0.0.1:15472/aeo_v2_candidate
+      APP_SECRET: isolated-ci-acceptance-secret-not-for-deployment
+      AEO_PUBLIC_URL: http://127.0.0.1:3102
+      AEO_SIGNUP_ENABLED: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+      DEFAULT_LOCALE: en-US
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm build:db
+      - run: pnpm exec prisma migrate deploy
+      - run: pnpm exec node scripts/liekan-migrate.mjs
+      - run: pnpm aeo:migrate
+      - name: Exercise a non-UTC database default
+        run: |
+          node --input-type=module <<'NODE'
+          import pg from 'pg';
+          const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+          await client.connect();
+          await client.query("ALTER DATABASE aeo_v2_candidate SET timezone TO 'Asia/Singapore'");
+          await client.end();
+          NODE
+      - run: pnpm build:packages
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm test:aeo
+      - run: pnpm exec tsx tests/aeo/identity.ts
+      - run: pnpm exec tsx tests/aeo/legacy.ts
+      - run: node --test tests/aeo/mail-relay.test.mjs tests/aeo/v1-export.test.mjs
+      - run: node --test tests/aeo/container.test.mjs
+      - run: pnpm build:tracker
+      - run: pnpm build:app
+      - name: Exercise production API with isolated tenants
+        run: |
+          mkdir -p .local .next/standalone/.next
+          cp -R public .next/standalone/public
+          cp -R .next/static .next/standalone/.next/static
+          HOSTNAME=127.0.0.1 PORT=3102 node .next/standalone/server.js > .local/server.log 2>&1 &
+          node --input-type=module -e 'for(let i=0;i<30;i++){try{if((await fetch(process.env.AEO_PUBLIC_URL+"/api/aeo/health")).ok)process.exit(0);}catch{}await new Promise(r=>setTimeout(r,1000));}process.exit(1);'
+          pnpm exec tsx tests/aeo/acceptance.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aeo-candidate-acceptance
+          path: |
+            .local/acceptance.json
+            .local/server.log
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      DATABASE_URL: postgresql://aeo_v2:acceptance-only@127.0.0.1:15472/aeo_v2_candidate
+      AEO_PUBLIC_URL: http://127.0.0.1:3102
+      AEO_SIGNUP_ENABLED: 'true'
+      APP_SECRET: isolated-ci-acceptance-secret-not-for-deployment
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm build:db
+      - run: node --test tests/aeo/container.test.mjs
+      - name: Build the actual deployment image
+        run: docker build --build-arg SKIP_BUILD_GEO=1 -t aeo-v2:acceptance .
+      - name: Start with an empty isolated database
+        run: |
+          mkdir -p .local
+          docker network create aeo-acceptance
+          docker run -d --name aeo-db --network aeo-acceptance -p 127.0.0.1:15472:5432 -e POSTGRES_USER=aeo_v2 -e POSTGRES_PASSWORD=acceptance-only -e POSTGRES_DB=aeo_v2_candidate postgres:16-alpine -c timezone=Asia/Singapore
+          for i in $(seq 1 30); do docker exec aeo-db pg_isready -U aeo_v2 -d aeo_v2_candidate && break; sleep 1; done
+          docker run -d --name aeo-app --network aeo-acceptance -p 127.0.0.1:3102:3000 -e DATABASE_URL=postgresql://aeo_v2:acceptance-only@aeo-db:5432/aeo_v2_candidate -e AEO_PUBLIC_URL -e AEO_SIGNUP_ENABLED -e APP_SECRET aeo-v2:acceptance
+          node --input-type=module -e 'for(let i=0;i<90;i++){try{if((await fetch(process.env.AEO_PUBLIC_URL+"/api/aeo/health")).ok)process.exit(0);}catch{}await new Promise(r=>setTimeout(r,1000));}process.exit(1);'
+          docker exec aeo-app test -s /app/LICENSE
+          docker exec aeo-app test -s /app/THIRD_PARTY_NOTICES.md
+          pnpm exec tsx tests/aeo/acceptance.ts
+      - name: Record container startup diagnostics
+        if: always()
+        run: docker logs aeo-app > .local/container.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aeo-container-acceptance
+          path: |
+            .local/acceptance.json
+            .local/container.log

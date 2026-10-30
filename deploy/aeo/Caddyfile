@@ -1,0 +1,21 @@
+{$AEO_STAGING_HOST} {
+    basic_auth {
+        staging {$AEO_STAGING_PASSWORD_HASH}
+    }
+    header X-Robots-Tag "noindex, nofollow, noarchive"
+    reverse_proxy app:3000 {
+        # The app trusts only this socket-derived address. Do not trust a
+        # caller-supplied CDN or forwarding header on the direct staging host.
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up -CF-*
+        header_up -X-Vercel-*
+        header_up -CloudFront-Viewer-*
+        header_up -EO-*
+        header_up -X-Umami-*
+        header_up -X-Client-IP
+        header_up -True-Client-IP
+        header_up -Forwarded
+        header_up -Authorization
+    }
+}

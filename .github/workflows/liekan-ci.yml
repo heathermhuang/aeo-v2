@@ -8,6 +8,8 @@ permissions:
   contents: read
 jobs:
   verify:
+    # This freezes the upstream publisher's original UI. AEO uses aeo.yml for its authorized redesign.
+    if: github.repository == 'yaojingang/GEOInflow'
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://user:pass@localhost:5432/dummy
