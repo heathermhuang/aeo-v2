@@ -49,9 +49,10 @@ used. These are declared/selected inventories, not proof every page was crawled.
 A bounded Cloudflare live tail captured one real aeo.io `/terms` request, HTTP 200,
 with the explicit AEO operator-probe User-Agent. Private headers and query strings
 were discarded. This verifies the receipt/import path; it is not organic traffic,
-a verified AI crawler or a conversion. Cloudflare Logpull/Logpush access returned
-403 under the available grant, Measurable's zone is not available under that grant,
-and the connected GA4 grant is expired/revoked. No source-access failure became an
+a verified AI crawler or a conversion. Initial Cloudflare REST log checks returned 403;
+the subsequent source record below corrects that capability assessment. Measurable's zone is not available under the current
+grant. On 2026-10-30 the user completed GA4 renewal; hostname-verified Plate.hk and
+AEO.io reports now work through a fresh client. No source-access failure became an
 empty-dataset or traffic-growth claim.
 
 After explicit approval, a dedicated OpenRouter key enforced US$0.10 total, no reset
@@ -115,10 +116,12 @@ changed in the v1 domain's operational setup.
 
 ## Remaining replacement gates
 
-1. Install/qualify real-site browser/conversion collection and obtain usable ongoing
-   logs/analytics access. The one controlled receipt and imported historical events
-   do not qualify real visits or conversions. Staging's Basic gate intentionally
-   continues to block external tracker delivery without the gate credential.
+1. Install/qualify real-site v2 browser/conversion collection. Cloudflare request
+   aggregates/live receipts and renewed GA4 reports now provide bounded external
+   source evidence for Plate.hk/AEO.io. They do not qualify v2 browser receipts or
+   AI-attributed conversions. Measurable.ai analytics access and durable ongoing
+   source operation remain unresolved. Staging's Basic gate continues to block
+   external tracker delivery without the gate credential.
 2. Independent customer/physical-phone acceptance remains unproven. The user assigned
    the agent to testing; the resulting evidence is labelled operator emulation.
 3. Decide any ongoing dedicated provider allowance. The three-call pilot is complete;
@@ -134,5 +137,7 @@ changed in the v1 domain's operational setup.
 The [source reconnection record](SOURCE_RECONNECTION_20261029.md) corrects the initial
 Cloudflare access assessment: the existing grant can retrieve request aggregates and
 live Worker receipts without a new token or upgrade. A real Plate.hk sample was
-imported. GA4 renewal is prepared at the same read-only scope and is waiting at
-Google's unverified-testing-client warning for the required human security step.
+imported. On 2026-10-30 Google consent completed at the same read-only scope; exact
+web-stream hostnames, real traffic and key-event reports were checked for Plate.hk and
+AEO.io. The source record states the unresolved Measurable.ai connection and stale
+credential in the existing Analytics tool process. No production route was changed.
