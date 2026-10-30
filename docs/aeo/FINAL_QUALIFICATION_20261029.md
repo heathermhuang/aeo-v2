@@ -139,5 +139,7 @@ Cloudflare access assessment: the existing grant can retrieve request aggregates
 live Worker receipts without a new token or upgrade. A real Plate.hk sample was
 imported. On 2026-10-30 Google consent completed at the same read-only scope; exact
 web-stream hostnames, real traffic and key-event reports were checked for Plate.hk and
-AEO.io. The source record states the unresolved Measurable.ai connection and stale
+AEO.io. Subsequently approved metadata-only discovery completed across the connected
+account without a default web-stream URL matching Measurable.ai; no other site's traffic
+was read. Measurable.ai remains unconnected. The source record also states the stale
 credential in the existing Analytics tool process. No production route was changed.

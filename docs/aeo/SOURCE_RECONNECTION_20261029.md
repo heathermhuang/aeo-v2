@@ -64,11 +64,20 @@ key-event occurrences in this window. These are GA4 observations, not proof of c
 attribution. GA4 aggregates were not inserted into v2 raw browser receipts, and the v2
 browser-connection and conversion states were not changed by this external source check.
 
-No Measurable.ai property matched the authorized-name discovery in the accessible
-account metadata. This is an unresolved connection, not a claim that no such property or
-traffic exists. A wider search through every accessible property's web streams was
-blocked by automatic approval review because it could inspect unrelated sites. That
-search was not executed or attempted through another path.
+After the user explicitly approved metadata-only discovery, the search completed
+across all properties and web streams available in the connected Google account, with
+no metadata errors. No default web-stream URL matched `measurable.ai` or
+`www.measurable.ai`. The private evidence records the enumeration bounds and complete
+counts. Only property/stream names, identifiers and default URLs were retained for
+this discovery; no traffic report was requested for any other site. The previously
+rejected broader query was run only after the user granted this specific scope.
+
+Measurable.ai remains unconnected through this account. This does not establish that
+the site has no Analytics collection, no property under another identity, or no traffic;
+a stream with another default URL is also not ruled out as a possible collection
+source. No new property, stream, grant or tracking tag was created. A matching property/
+stream accessible to the connected identity, or another explicit source mapping, is
+needed before its traffic or key events can be qualified.
 
 The installed Analytics adapter retains the old credential in its already-running
 process. Its current tool call still returns `invalid_grant`; a fresh interpreter
@@ -82,7 +91,8 @@ Google SDK client at the same read-only scope.
 
 Private evidence is retained in the ignored local qualification directory:
 `ga4-reauthorization-result.json`, `ga4-real-source-qualification.json`,
-`ga4-adapter-verification.json` and their bounded query scripts, all mode 0600.
+`ga4-adapter-verification.json`, `measurable-ga4-metadata-discovery.json` and
+their bounded query scripts, all mode 0600.
 
 The testing-client warning is also relevant to durability: Google documents seven-day
 refresh-token expiry for external apps in Testing when more than basic identity scopes
@@ -94,5 +104,6 @@ an owner/admin decision, not an automatic change made during this renewal.
 Production remains on v1. This record supersedes the earlier implication that a new
 Cloudflare Logs Read credential was necessarily required for bounded source validation;
 the Google security handoff and bounded GA4 reads have now completed. Measurable.ai
-access and the existing Analytics tool session's cached credential remain unresolved.
+has no declared matching web stream in the connected account; its traffic remains
+unqualified. The existing Analytics tool session's cached credential remains unresolved.
 Real-site v2 tracker/conversion acceptance remains a separate replacement gate.
