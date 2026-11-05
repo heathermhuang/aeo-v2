@@ -18,7 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import styles from './AeoApp.module.css';
-import PublicStart, { PENDING_SITE } from './PublicStart';
+import PublicStart, { PENDING_SITE, type StartDraft } from './PublicStart';
 type View = 'overview' | 'answers' | 'crawl' | 'traffic' | 'connect' | 'members';
 const nav = [
   { id: 'overview', label: 'Overview', icon: ChartNoAxesCombined },
@@ -59,6 +59,7 @@ export default function AeoApp() {
   const [proof, setProof] = useState<{ token: string; purpose: string } | null>(null);
   const [accountScreen, setAccountScreen] = useState(false);
   const [startingDomain, setStartingDomain] = useState('');
+  const [publicDraft, setPublicDraft] = useState<StartDraft>();
   const generation = useRef(0);
   async function loadSession() {
     const data = await api('session');
@@ -293,8 +294,10 @@ export default function AeoApp() {
   if (!session && !proof && !accountScreen)
     return (
       <PublicStart
-        onAccount={(mode, domain) => {
-          if (domain) setStartingDomain(domain);
+        initial={publicDraft}
+        onAccount={(mode, draft) => {
+          setPublicDraft(draft);
+          if (draft.result) setStartingDomain(draft.result.hostname);
           setAuthMode(mode);
           setError('');
           setNotice('');

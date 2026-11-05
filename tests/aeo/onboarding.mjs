@@ -73,6 +73,12 @@ try {
       fullPage: true,
     });
     await page.getByRole('button', { name: 'Continue with this website' }).click();
+    await page.getByRole('button', { name: 'Back to website check', exact: true }).click();
+    await expect(page.getByLabel('Website URL', { exact: true })).toHaveValue(
+      'https://aeo.io/about?private=value',
+    );
+    await page.getByRole('heading', { name: 'Page title', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Continue with this website' }).click();
     await page.getByLabel('Email', { exact: true }).fill('operator@example.test');
     assert.equal(await page.getByLabel('Workspace name', { exact: true }).count(), 0);
     await page.getByRole('button', { name: 'Send email link', exact: true }).click();

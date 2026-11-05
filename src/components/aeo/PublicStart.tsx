@@ -5,13 +5,16 @@ import type { PublicCheck } from '@/lib/aeo/public-check';
 import styles from './AeoApp.module.css';
 
 export const PENDING_SITE = 'aeo-starting-site';
+export type StartDraft = { url: string; result: PublicCheck | null };
 export default function PublicStart({
   onAccount,
+  initial,
 }: {
-  onAccount: (mode: 'signup' | 'login', domain?: string) => void;
+  onAccount: (mode: 'signup' | 'login', draft: StartDraft) => void;
+  initial?: StartDraft;
 }) {
-  const [url, setUrl] = useState('');
-  const [result, setResult] = useState<PublicCheck | null>(null);
+  const [url, setUrl] = useState(initial?.url || '');
+  const [result, setResult] = useState<PublicCheck | null>(initial?.result || null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   async function check(event: FormEvent<HTMLFormElement>) {
@@ -46,7 +49,7 @@ export default function PublicStart({
         /* Storage is optional. */
       }
     }
-    onAccount('signup', result?.hostname);
+    onAccount('signup', { url, result });
   }
   return (
     <main className={styles.auth}>
@@ -54,7 +57,7 @@ export default function PublicStart({
         <a className={styles.wordmark} href="/" aria-label="AEO home">
           aeo<span>↗</span>
         </a>
-        <button className={styles.textButton} onClick={() => onAccount('login')}>
+        <button className={styles.textButton} onClick={() => onAccount('login', { url, result })}>
           Sign in
         </button>
       </header>
