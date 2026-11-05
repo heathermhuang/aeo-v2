@@ -36,3 +36,5 @@ tmp
 .local
 test-results
 design/reference
+
+**/.dev.vars

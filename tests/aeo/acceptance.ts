@@ -120,8 +120,12 @@ async function main() {
     await request(a, 'sites', 'POST', { workspaceId: a.workspace, domain: 'alpha-aeo.com' }, 201)
   ).body.id;
   b.site = (
-    await request(b, 'sites', 'POST', { workspaceId: b.workspace, domain: 'beta-aeo.com' }, 201)
+    await request(b, 'sites', 'POST', { workspaceId: b.workspace, domain: 'www.beta-aeo.com' }, 201)
   ).body.id;
+  const policy = (await db.query('SELECT allowed_hostnames FROM liekan_collection_policy WHERE website_id=$1', [a.site])).rows[0];
+  check(JSON.stringify(policy.allowed_hostnames) === JSON.stringify(['alpha-aeo.com']), 'new sites restrict collection to their declared normalized domain');
+  const wwwPolicy = (await db.query('SELECT allowed_hostnames FROM liekan_collection_policy WHERE website_id=$1', [b.site])).rows[0];
+  check(JSON.stringify(wwwPolicy.allowed_hostnames) === JSON.stringify(['beta-aeo.com']), 'collection policy follows the upstream normalization of www hostnames');
   const foreign = await fetch(origin + `/api/websites/${b.site}`, {
     headers: { cookie: a.cookie },
   });

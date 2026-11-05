@@ -16,6 +16,7 @@ try {
     '003_rate_expiry.sql',
     '004_identity.sql',
     '005_legacy_archive.sql',
+    '006_collection_domains.sql',
   ]) {
     const sql = await readFile(new URL('../../db/aeo/' + name, import.meta.url), 'utf8'),
       checksum = createHash('sha256').update(sql).digest('hex');

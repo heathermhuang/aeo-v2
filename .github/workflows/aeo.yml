@@ -32,6 +32,8 @@ jobs:
       DEFAULT_LOCALE: en-US
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: pnpm/action-setup@v4
         with:
           version: 12.3.4
@@ -56,6 +58,7 @@ jobs:
       - run: pnpm build:packages
       - run: pnpm exec tsc --noEmit
       - run: pnpm test:aeo
+      - run: node --test tests/aeo/edge.test.mjs
       - run: pnpm exec tsx tests/aeo/identity.ts
       - run: pnpm exec tsx tests/aeo/legacy.ts
       - run: node --test tests/aeo/mail-relay.test.mjs tests/aeo/v1-export.test.mjs
@@ -87,6 +90,8 @@ jobs:
       APP_SECRET: isolated-ci-acceptance-secret-not-for-deployment
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: pnpm/action-setup@v4
         with:
           version: 12.3.4
@@ -98,7 +103,7 @@ jobs:
       - run: pnpm build:db
       - run: node --test tests/aeo/container.test.mjs
       - name: Build the actual deployment image
-        run: docker build --build-arg SKIP_BUILD_GEO=1 -t aeo-v2:acceptance .
+        run: docker build --build-arg SKIP_BUILD_GEO=1 --build-arg AEO_REVISION="$(git rev-parse HEAD)" -t aeo-v2:acceptance .
       - name: Start with an empty isolated database
         run: |
           mkdir -p .local
@@ -110,6 +115,22 @@ jobs:
           docker exec aeo-app test -s /app/LICENSE
           docker exec aeo-app test -s /app/THIRD_PARTY_NOTICES.md
           pnpm exec tsx tests/aeo/acceptance.ts
+      - name: Export the qualified deployment image
+        if: success() && github.event_name == 'pull_request'
+        run: |
+          docker save aeo-v2:acceptance | gzip -1 > .local/aeo-v2-qualified.tar.gz
+          sha256sum .local/aeo-v2-qualified.tar.gz > .local/aeo-v2-qualified.sha256
+          docker image inspect aeo-v2:acceptance > .local/aeo-v2-image.json
+      - uses: actions/upload-artifact@v4
+        if: success() && github.event_name == 'pull_request'
+        with:
+          name: aeo-qualified-image
+          retention-days: 1
+          compression-level: 0
+          path: |
+            .local/aeo-v2-qualified.tar.gz
+            .local/aeo-v2-qualified.sha256
+            .local/aeo-v2-image.json
       - name: Record container startup diagnostics
         if: always()
         run: docker logs aeo-app > .local/container.log 2>&1 || true

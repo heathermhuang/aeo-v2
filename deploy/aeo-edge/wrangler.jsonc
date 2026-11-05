@@ -1,0 +1,34 @@
+{
+  "name": "aeo-v2-edge",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-30",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "routes": [],
+  "services": [
+    {
+      "binding": "LEGACY_AEO",
+      "service": "aeo-io"
+    }
+  ],
+  "vars": {
+    "AEO_EDGE_MODE": "observe",
+    "AEO_ORIGIN_URL": "https://staging.aeo.io",
+    "AEO_CANONICAL_ORIGIN": "https://staging.aeo.io",
+    "AEO_RELEASE": "candidate-20261105",
+    "AEO_TRACKING_SITE_ID": "",
+    "AEO_GA4_ID": "G-BN7420NXBW"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": false
+    },
+    "traces": {
+      "enabled": false
+    }
+  }
+}

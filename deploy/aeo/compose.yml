@@ -46,6 +46,7 @@ services:
     environment:
       AEO_STAGING_HOST: ${AEO_STAGING_HOST}
       AEO_STAGING_PASSWORD_HASH: ${AEO_STAGING_PASSWORD_HASH:?Set the staging access password hash}
+      AEO_EDGE_ORIGIN_KEY: ${AEO_EDGE_ORIGIN_KEY:?Set the dedicated edge origin key}
     ports: ['80:80', '443:443']
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

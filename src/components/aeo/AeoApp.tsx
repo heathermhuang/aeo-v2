@@ -333,6 +333,7 @@ export default function AeoApp() {
                 <button
                   type="button"
                   aria-pressed={authMode === 'login'}
+                  data-umami-event="account_menu_open"
                   onClick={() => {
                     setAuthMode('login');
                     setError('');
@@ -1240,6 +1241,10 @@ export default function AeoApp() {
                 These are historical v1 reports. Their measurements have not been revalidated as v2
                 observations. Downloads remove private access material; original records and source
                 hashes are retained.
+              </p>
+              <p>
+                <a href="https://aeo.io/legacy">Open the V1 workspace</a> to access existing reports
+                and private links with your original sign-in.
               </p>
               {!historical.length && (
                 <p>

@@ -54,6 +54,10 @@ export async function createSite(userId: string, input: unknown) {
       [id, data.name || host, host, data.workspaceId, userId],
     );
     await tx.query('INSERT INTO aeo_site_settings(website_id) VALUES($1)', [id]);
+    await tx.query(
+      'INSERT INTO liekan_collection_policy(website_id,allowed_hostnames) VALUES($1,$2)',
+      [id, [host.replace(/\.$/, '').replace(/^www\./, '')]],
+    );
     return { id, name: data.name || host, domain: host, workspaceId: data.workspaceId };
   });
 }
