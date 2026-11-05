@@ -70,3 +70,7 @@ test('provider failures and rate limits make no automatic retry', async () => {
   assert.equal((await relay.fetch(request(message), env)).status, 429);
   assert.equal(attempts, 1);
 });
+
+test('production identity mail uses the canonical AEO origin with a fragment proof',async()=>{
+ const {sent,env}=fixture();env.AEO_MAIL_LINK_ORIGIN='https://aeo.io';assert.equal((await relay.fetch(request(message),env)).status,200);assert.ok(sent[0].text.includes('https://aeo.io/#account='+token));assert.ok(!sent[0].text.includes('staging.aeo.io'));assert.ok(!sent[0].text.includes('?account='));
+});

@@ -4,7 +4,7 @@
   "compatibility_date": "2026-10-29",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
-  "vars": { "AEO_MAIL_LINK_ORIGIN": "https://staging.aeo.io" },
+  "vars": { "AEO_MAIL_LINK_ORIGIN": "https://aeo.io" },
   "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["notifications@aeo.io"] }],
   "ratelimits": [{ "name": "AEO_MAIL_LIMIT", "namespace_id": "230109", "simple": { "limit": 5, "period": 60 } }],
   "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false }, "traces": { "enabled": false } }

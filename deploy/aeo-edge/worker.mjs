@@ -62,6 +62,11 @@ async function forwardV2(request, env, transport) {
   const upstream = await transport(new Request(new Request(origin, request), { headers, redirect: "manual", signal: AbortSignal.timeout(6e4) }));
   const response = new Response(upstream.body, upstream);
   response.headers.delete("www-authenticate");
+  if (!response.headers.has("referrer-policy")) response.headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  if (env.AEO_EDGE_MODE === 'production' && incoming.hostname === 'aeo.io' && incoming.pathname === '/') {
+    preserveGaCsp(response);
+    response.headers.delete('x-robots-tag');
+  }
   response.headers.set("X-AEO-Release", env.AEO_RELEASE || "candidate");
   if (!["/script.js", "/site.webmanifest", "/favicon.ico", "/aeo-icon.svg"].includes(incoming.pathname) && !incoming.pathname.startsWith("/_next/static/")) response.headers.set("Cache-Control", "private, no-store");
   const location = response.headers.get("location");
@@ -117,10 +122,6 @@ var worker_default = {
       }
       const publicHtml = !preview && request.method === "GET" && response.status === 200 && response.headers.get("content-type")?.includes("text/html") && (PUBLIC_PAGES.has(path) || path === "/legacy" || path === "/legacy/");
       if (publicHtml && typeof HTMLRewriter !== "undefined") {
-        if (env.AEO_EDGE_MODE === 'production' && path === '/') {
-          preserveGaCsp(response);
-          response.headers.delete('x-robots-tag');
-        }
         const operator = url.searchParams.get("aeo_operator") === "1";
         const banner = legacyReadOnly && (path === "/legacy" || path === "/legacy/" || (env.AEO_EDGE_MODE === "freeze" && path === "/"));
         response = new HTMLRewriter().on("body", { element(el) {

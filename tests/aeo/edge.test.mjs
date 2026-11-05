@@ -55,3 +55,13 @@ test('collector preserves the actual website Origin even during staged observati
   const r=await edge.fetch(new Request('https://aeo.io/api/send',{method:'POST',headers:{origin:'https://aeo.io'},body:'{}'}),staged);assert.equal(r.status,200);assert.equal(seen.headers.get('origin'),'https://aeo.io');
  }finally{globalThis.fetch=original;}
 });
+
+test('production HEAD and GET share public indexing headers while previews stay unindexed',async()=>{
+ const original=globalThis.fetch;globalThis.fetch=async()=>new Response(null,{headers:{'x-robots-tag':'noindex, nofollow','content-security-policy':"default-src 'self'; script-src 'self' 'unsafe-inline';"}});
+ try{
+  for(const method of ['GET','HEAD']){
+   const r=await edge.fetch(new Request('https://aeo.io/',{method}),env);assert.equal(r.status,200);assert.equal(r.headers.has('x-robots-tag'),false);assert.match(r.headers.get('content-security-policy'),/https:\/\/www.googletagmanager.com/);assert.equal(r.headers.get('referrer-policy'),'strict-origin-when-cross-origin');
+  }
+  const preview=await edge.fetch(new Request('https://aeo-v2-edge.synthetic.workers.dev/',{headers:{authorization:env.AEO_PREVIEW_AUTH}}),env);assert.match(preview.headers.get('x-robots-tag'),/noindex/);
+ }finally{globalThis.fetch=original;}
+});
