@@ -3,14 +3,17 @@ import {test} from 'node:test';
 import {runInNewContext} from 'node:vm';
 import edge,{isV2Path,legacyWriteAllowed,cleanHeaders,trackingMarkup,ga4Markup} from '../../deploy/aeo-edge/worker.mjs';
 const env={AEO_EDGE_MODE:'production',AEO_PREVIEW_AUTH:'Basic synthetic-preview-only',AEO_ORIGIN_URL:'https://staging.aeo.io',AEO_CANONICAL_ORIGIN:'https://aeo.io',AEO_EDGE_ORIGIN_KEY:'a'.repeat(64),LEGACY_AEO:{fetch:async request=>new Response(JSON.stringify({path:new URL(request.url).pathname}),{headers:{'Content-Type':'application/json'}})}};
-test('preserves v1 reads and rejects report, account creation, and billing writes',async()=>{
+test('retires v1 routes without forwarding requests or carrying access material into the new app',async()=>{
  assert.equal(isV2Path('/r/'),false);assert.equal(isV2Path('/api/reports/private-id'),false);
  for(const path of ['/api/check-jobs','/api/reports/id/recheck','/api/workspaces','/api/auth/signup','/api/billing/webhook']){
   assert.equal(legacyWriteAllowed(path,'POST'),false);
-  assert.equal((await edge.fetch(new Request('https://aeo.io'+path,{method:'POST'}),env)).status,423);
+  assert.equal((await edge.fetch(new Request('https://aeo.io'+path,{method:'POST'}),env)).status,410);
  }
- for(const path of ['/api/reports/id','/r/','/legacy'])assert.equal((await edge.fetch(new Request('https://aeo.io'+path),env)).status,200);
- assert.equal((await(await edge.fetch(new Request('https://aeo.io/legacy'),env)).json()).path,'/');
+ assert.equal((await edge.fetch(new Request('https://aeo.io/api/reports/id'),env)).status,410);
+ for(const path of ['/r/?token=private','/legacy?proof=private']){
+  const response=await edge.fetch(new Request('https://aeo.io'+path),env);
+  assert.equal(response.status,302);assert.equal(response.headers.get('location'),'https://aeo.io/');assert.match(response.headers.get('cache-control'),/no-store/);
+ }
  assert.equal(legacyWriteAllowed('/api/shared-report/resolve','POST'),true);
 });
 test('private preview and exact-origin mutations stay protected',async()=>{

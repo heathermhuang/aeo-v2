@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { checkPublicWebsite, publicCheckUrl } from '@/lib/aeo/public-check';
 import { legacyReports, legacyReport } from '@/lib/aeo/legacy';
 import { db } from '@/lib/aeo/db';
 import { runAnswer, answerJobs } from '@/lib/aeo/answers';
@@ -41,6 +42,14 @@ async function handle(request: Request, { params }: { params: Promise<{ path: st
     const { path } = await params;
     const method = request.method;
     if (method !== 'GET') sameOrigin(request);
+    if (path.join('/') === 'public-check' && method === 'POST') {
+      const input = await body(request);
+      const target = publicCheckUrl(input);
+      // Persist only hashed quota keys, not page contents or private account data.
+      await rateLimit('public-check:installation', 60, 3600);
+      await rateLimit('public-check:host:' + target.hostname, 3, 900);
+      return json(await checkPublicWebsite(input));
+    }
     if (path.join('/') === 'health' && method === 'GET') {
       await db.query('SELECT token_hash FROM aeo_session LIMIT 0');
       return json({ status: 'ok', product: 'AEO v2', billingEnabled: false });

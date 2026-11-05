@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { db } from '../../src/lib/aeo/db';
-import { signup as beginSignup } from '../../src/lib/aeo/auth';
+import { signup as beginSignup, digest } from '../../src/lib/aeo/auth';
 import type { IdentityMessage } from '../../src/lib/aeo/mail';
 import { runAnswer } from '../../src/lib/aeo/answers';
 const origin = process.env.AEO_PUBLIC_URL!;
@@ -77,6 +77,19 @@ async function signup(label: string): Promise<Actor> {
 }
 async function main() {
   await request(null, 'health');
+  await request(null, 'public-check', 'POST', { url: 'https://127.0.0.1' }, 400);
+  await request(null, 'public-check', 'POST', { url: 'https://aeo.io' }, 403, {
+    origin: 'https://unrelated.example',
+  });
+  // Exhaust only a disposable candidate quota; prove anonymous checks are bounded before fetching.
+  const quotaKey = digest('public-check:host:aeo.io'),
+    bucket = Math.floor(Date.now() / 1000 / 900);
+  await db.query(
+    'INSERT INTO aeo_rate_limit(key,bucket,attempts) VALUES($1,$2,3) ON CONFLICT(key,bucket) DO UPDATE SET attempts=3',
+    [quotaKey, bucket],
+  );
+  await request(null, 'public-check', 'POST', { url: 'https://aeo.io' }, 429);
+  await db.query('DELETE FROM aeo_rate_limit WHERE key=$1', [quotaKey]);
   const a = await signup('alpha'),
     b = await signup('beta'),
     reader = await signup('reader');
@@ -122,10 +135,24 @@ async function main() {
   b.site = (
     await request(b, 'sites', 'POST', { workspaceId: b.workspace, domain: 'www.beta-aeo.com' }, 201)
   ).body.id;
-  const policy = (await db.query('SELECT allowed_hostnames FROM liekan_collection_policy WHERE website_id=$1', [a.site])).rows[0];
-  check(JSON.stringify(policy.allowed_hostnames) === JSON.stringify(['alpha-aeo.com']), 'new sites restrict collection to their declared normalized domain');
-  const wwwPolicy = (await db.query('SELECT allowed_hostnames FROM liekan_collection_policy WHERE website_id=$1', [b.site])).rows[0];
-  check(JSON.stringify(wwwPolicy.allowed_hostnames) === JSON.stringify(['beta-aeo.com']), 'collection policy follows the upstream normalization of www hostnames');
+  const policy = (
+    await db.query('SELECT allowed_hostnames FROM liekan_collection_policy WHERE website_id=$1', [
+      a.site,
+    ])
+  ).rows[0];
+  check(
+    JSON.stringify(policy.allowed_hostnames) === JSON.stringify(['alpha-aeo.com']),
+    'new sites restrict collection to their declared normalized domain',
+  );
+  const wwwPolicy = (
+    await db.query('SELECT allowed_hostnames FROM liekan_collection_policy WHERE website_id=$1', [
+      b.site,
+    ])
+  ).rows[0];
+  check(
+    JSON.stringify(wwwPolicy.allowed_hostnames) === JSON.stringify(['beta-aeo.com']),
+    'collection policy follows the upstream normalization of www hostnames',
+  );
   const foreign = await fetch(origin + `/api/websites/${b.site}`, {
     headers: { cookie: a.cookie },
   });

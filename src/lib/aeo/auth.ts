@@ -18,13 +18,13 @@ export async function rateLimit(key: string, limit: number, seconds = 900) {
 }
 export async function signup(input: unknown, deliver = sendIdentityMail) {
   if (process.env.AEO_SIGNUP_ENABLED !== 'true')
-    throw new AeoError(403, 'New workspaces are not open yet.');
+    throw new AeoError(403, 'New accounts are not open yet.');
   const data = accountInput.parse(input);
-  return requestProof(data.email, data.workspace || 'My workspace', false, deliver);
+  return requestProof(data.email, data.workspace || 'My team', false, deliver);
 }
 export async function recover(input: unknown, deliver = sendIdentityMail) {
   const data = z.object({ email }).strict().parse(input);
-  return requestProof(data.email, 'My workspace', true, deliver);
+  return requestProof(data.email, 'My team', true, deliver);
 }
 async function requestProof(
   address: string,
@@ -204,7 +204,7 @@ export function tokenFrom(request: Request) {
 }
 export async function principal(request: Request) {
   const token = tokenFrom(request);
-  if (!token) throw new AeoError(401, 'Sign in to your workspace.');
+  if (!token) throw new AeoError(401, 'Sign in to continue.');
   const active = (
     await db.query(
       'SELECT u.user_id AS id,u.username AS email,u.password,s.password_hash FROM aeo_session s JOIN "user" u ON u.user_id=s.user_id JOIN aeo_identity i ON i.user_id=u.user_id AND i.email=u.username WHERE s.token_hash=$1 AND s.expires_at>now() AND u.deleted_at IS NULL',
