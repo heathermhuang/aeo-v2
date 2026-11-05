@@ -52,6 +52,8 @@ ARG NODE_OPTIONS
 ARG PNPM_VERSION
 ARG PRISMA_VERSION
 
+# Keep the standalone archive validator aligned with the application lockfile.
+ARG ZOD_VERSION=4.6.7
 ARG AEO_REVISION=unknown
 LABEL org.opencontainers.image.revision=$AEO_REVISION org.opencontainers.image.title="AEO v2" org.opencontainers.image.licenses="MIT"
 
@@ -74,7 +76,7 @@ RUN echo {} > package.json
 RUN printf "allowBuilds:\n  '@prisma/engines': true\n  prisma: false\nverifyDepsBeforeRun: false\n" > pnpm-workspace.yaml
 
 # Script dependencies
-RUN pnpm add npm-run-all dotenv chalk semver pg@8.23.1 \
+RUN pnpm add npm-run-all dotenv chalk semver pg@8.23.1 zod@${ZOD_VERSION} \
     prisma@${PRISMA_VERSION} \
     @prisma/client@${PRISMA_VERSION} \
     @prisma/adapter-pg@${PRISMA_VERSION}

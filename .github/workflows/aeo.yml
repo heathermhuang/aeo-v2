@@ -115,6 +115,15 @@ jobs:
           docker exec aeo-app test -s /app/LICENSE
           docker exec aeo-app test -s /app/THIRD_PARTY_NOTICES.md
           pnpm exec tsx tests/aeo/acceptance.ts
+      - name: Verify standalone migration CLI in the actual image
+        run: |
+          docker exec -i aeo-app node --input-type=module <<'NODE'
+          import { spawnSync } from 'node:child_process';
+          import assert from 'node:assert/strict';
+          const result = spawnSync(process.execPath, ['scripts/aeo/import-v1.mjs'], { encoding: 'utf8' });
+          assert.notEqual(result.status, 0, 'CLI requires an explicit archive and target');
+          assert.match(result.stderr, /Usage: import-v1.mjs/, 'standalone CLI and validator dependencies load');
+          NODE
       - name: Export the qualified deployment image
         if: success() && github.event_name == 'pull_request'
         run: |
