@@ -8,7 +8,7 @@ var json = /* @__PURE__ */ __name((value, status = 200) => Response.json(value, 
 var LEGACY_AUTH = /* @__PURE__ */ new Set(["/api/auth/login", "/api/auth/magic-link", "/api/auth/magic-link/consume", "/api/auth/recover", "/api/auth/password-reset", "/api/auth/password-reset/confirm", "/api/session", "/api/logout", "/api/auth/session/rotate", "/api/auth/logout-all", "/api/shared-report/resolve"]);
 var PUBLIC_PAGES = /* @__PURE__ */ new Set(["/"]);
 function isV2Path(path) {
-  return path === "/" || path.startsWith("/api/aeo/") || path.startsWith("/_next/") || ["/script.js", "/api/send", "/site.webmanifest", "/favicon.ico", "/aeo-icon.svg"].includes(path);
+  return path === "/" || path.startsWith("/api/aeo/") || path.startsWith("/_next/") || ["/script.js", "/robots.txt", "/api/send", "/site.webmanifest", "/favicon.ico", "/aeo-icon.svg"].includes(path);
 }
 __name(isV2Path, "isV2Path");
 function legacyWriteAllowed(path, method) {
@@ -90,6 +90,12 @@ var worker_default = {
       if (preview && !equal(request.headers.get("authorization"), env.AEO_PREVIEW_AUTH)) return new Response("Private AEO qualification", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="AEO qualification"', "Cache-Control": "private, no-store" } });
       if (!["observe", "freeze", "production"].includes(env.AEO_EDGE_MODE)) return json({ error: "Release unavailable" }, 503);
       const path = url.pathname;
+      // The product now has one interface. Retain v1 only as an operator rollback target.
+      if (!preview && env.AEO_EDGE_MODE === "production" && !isV2Path(path)) {
+        if (["GET", "HEAD"].includes(request.method) && !path.startsWith("/api/"))
+          return new Response(null, { status: 302, headers: { Location: "https://aeo.io/", "Cache-Control": "private, no-store" } });
+        return json({ error: "This endpoint has been retired. Open aeo.io to continue.", code: "ENDPOINT_RETIRED" }, 410);
+      }
       const legacyReadOnly = env.AEO_EDGE_MODE !== "observe";
       const v2 = preview || ["/script.js", "/api/send"].includes(path) || env.AEO_EDGE_MODE === "production" && isV2Path(path);
       let response;

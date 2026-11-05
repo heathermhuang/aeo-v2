@@ -5,6 +5,6 @@ export function isAeoSurface(path: string) {
     path === '/api/send' ||
     path.startsWith('/api/aeo/') ||
     path.startsWith('/_next/') ||
-    ['/script.js', '/site.webmanifest', '/favicon.ico', '/aeo-icon.svg'].includes(path)
+    ['/script.js', '/robots.txt', '/site.webmanifest', '/favicon.ico', '/aeo-icon.svg'].includes(path)
   );
 }

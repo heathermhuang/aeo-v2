@@ -58,6 +58,7 @@ jobs:
       - run: pnpm build:packages
       - run: pnpm exec tsc --noEmit
       - run: pnpm test:aeo
+      - run: pnpm exec vitest run src/lib/aeo/public-check.test.ts src/lib/liekan/crawler-control/public-probe-network.test.ts
       - run: node --test tests/aeo/edge.test.mjs
       - run: pnpm exec tsx tests/aeo/identity.ts
       - run: pnpm exec tsx tests/aeo/legacy.ts

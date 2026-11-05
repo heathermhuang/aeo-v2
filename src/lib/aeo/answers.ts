@@ -50,7 +50,7 @@ export async function runAnswer(
       )
     ).rows[0].n;
     if (usage >= cap)
-      throw new AeoError(429, 'This workspace has reached its daily answer-check allowance.');
+      throw new AeoError(429, 'This team has reached its daily answer-check allowance.');
     // The installation lock bounds total provider work across customer workspaces.
     await tx.query('SELECT pg_advisory_xact_lock(12800004)');
     const total = (

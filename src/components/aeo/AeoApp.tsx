@@ -18,7 +18,8 @@ import {
   X,
 } from 'lucide-react';
 import styles from './AeoApp.module.css';
-type View = 'overview' | 'answers' | 'crawl' | 'traffic' | 'connect' | 'members' | 'archive';
+import PublicStart, { PENDING_SITE, type StartDraft } from './PublicStart';
+type View = 'overview' | 'answers' | 'crawl' | 'traffic' | 'connect' | 'members';
 const nav = [
   { id: 'overview', label: 'Overview', icon: ChartNoAxesCombined },
   { id: 'answers', label: 'AI answers', icon: MessageSquare },
@@ -56,7 +57,9 @@ export default function AeoApp() {
     [people, setPeople] = useState<any[]>([]),
     [answerId, setAnswerId] = useState('');
   const [proof, setProof] = useState<{ token: string; purpose: string } | null>(null);
-  const [historical, setHistorical] = useState<any[]>([]);
+  const [accountScreen, setAccountScreen] = useState(false);
+  const [startingDomain, setStartingDomain] = useState('');
+  const [publicDraft, setPublicDraft] = useState<StartDraft>();
   const generation = useRef(0);
   async function loadSession() {
     const data = await api('session');
@@ -64,6 +67,14 @@ export default function AeoApp() {
     setWorkspaceId(data.workspaces[0]?.id || '');
   }
   useEffect(() => {
+    try {
+      const pending = JSON.parse(localStorage.getItem(PENDING_SITE) || 'null');
+      if (pending?.expires > Date.now() && /^[a-z0-9.-]{1,253}$/.test(pending.domain))
+        setStartingDomain(pending.domain);
+      else localStorage.removeItem(PENDING_SITE);
+    } catch {
+      /* Storage is optional. */
+    }
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     const token = fragment.get('account'),
       purpose = fragment.get('purpose');
@@ -97,6 +108,7 @@ export default function AeoApp() {
         if (active) {
           setSites(data.sites);
           setSiteId(data.sites[0]?.id || '');
+          if (startingDomain && !data.sites.some(s => s.domain === startingDomain)) setAdding(true);
         }
       })
       .catch(e => {
@@ -176,12 +188,6 @@ export default function AeoApp() {
       setBusy(false);
     }
   }
-  useEffect(() => {
-    if (session && view === 'archive')
-      api('legacy/reports')
-        .then(data => setHistorical(data.reports))
-        .catch(e => setError(e.message));
-  }, [session, view]);
   async function refresh() {
     const id = siteId,
       current = generation.current;
@@ -213,7 +219,6 @@ export default function AeoApp() {
           method: 'POST',
           body: JSON.stringify({
             email: String(form.get('email')).trim(),
-            ...(authMode === 'signup' ? { workspace: form.get('workspace') } : {}),
           }),
         });
         setNotice(
@@ -234,6 +239,12 @@ export default function AeoApp() {
       setSiteId(website.id);
       setView('overview');
       setAdding(false);
+      setStartingDomain('');
+      try {
+        localStorage.removeItem(PENDING_SITE);
+      } catch {
+        /* Storage is optional. */
+      }
     });
   }
   async function importData(event: FormEvent<HTMLFormElement>, kind: 'logs' | 'catalog') {
@@ -269,18 +280,30 @@ export default function AeoApp() {
     workspace = session?.workspaces.find(w => w.id === workspaceId),
     readOnly = workspace?.role === 'team-view-only';
   const heading =
-    view === 'archive'
-      ? 'Historical AEO v1 reports'
-      : view === 'connect'
-        ? 'Connect your website'
-        : view === 'members'
-          ? 'Workspace members'
-          : nav.find(n => n.id === view)?.label || 'Overview';
+    view === 'connect'
+      ? 'Connect your website'
+      : view === 'members'
+        ? 'Team access'
+        : nav.find(n => n.id === view)?.label || 'Overview';
   if (session === undefined)
     return (
       <div className={styles.wait} role="status">
-        Opening your workspace…
+        Opening AEO…
       </div>
+    );
+  if (!session && !proof && !accountScreen)
+    return (
+      <PublicStart
+        initial={publicDraft}
+        onAccount={(mode, draft) => {
+          setPublicDraft(draft);
+          if (draft.result) setStartingDomain(draft.result.hostname);
+          setAuthMode(mode);
+          setError('');
+          setNotice('');
+          setAccountScreen(true);
+        }}
+      />
     );
   if (!session)
     return (
@@ -296,7 +319,7 @@ export default function AeoApp() {
               <br />
               Know what to do next.
             </h1>
-            <p>Bring answers, crawl access, and real website traffic into one focused workspace.</p>
+            <p>Connect your website data and turn evidence into a clear next step.</p>
             <div className={styles.authSequence}>
               <span>
                 <Globe size={18} />
@@ -314,7 +337,7 @@ export default function AeoApp() {
               </span>
             </div>
             <p className={styles.quiet}>
-              Your data stays private to your workspace. No invented visibility scores.
+              Your website data stays private to you and the people you invite.
             </p>
           </section>
           <section className={styles.authPanel}>
@@ -328,7 +351,7 @@ export default function AeoApp() {
                     setError('');
                   }}
                 >
-                  Create workspace
+                  Create account
                 </button>
                 <button
                   type="button"
@@ -349,22 +372,14 @@ export default function AeoApp() {
                 : authMode === 'recover'
                   ? 'Restore your access.'
                   : authMode === 'signup'
-                    ? 'Start with your website.'
+                    ? 'Keep going with your website.'
                     : 'Welcome back.'}
             </h2>
             <form onSubmit={authenticate}>
-              {!proof && authMode === 'signup' && (
-                <label>
-                  Workspace name
-                  <input
-                    name="workspace"
-                    autoComplete="organization"
-                    placeholder="Your team or company"
-                    minLength={2}
-                    maxLength={50}
-                    required
-                  />
-                </label>
+              {startingDomain && !proof && (
+                <p>
+                  Continue with <strong>{startingDomain}</strong>.
+                </p>
               )}
               {!proof && (
                 <label>
@@ -395,7 +410,7 @@ export default function AeoApp() {
                 {busy
                   ? 'Please wait…'
                   : proof
-                    ? 'Confirm and open workspace'
+                    ? 'Confirm and continue'
                     : authMode === 'login'
                       ? 'Sign in'
                       : 'Send email link'}
@@ -411,7 +426,7 @@ export default function AeoApp() {
                     setNotice('');
                   }}
                 >
-                  Forgot password or moving from AEO v1?
+                  Forgot password?
                 </button>
               )}
               {proof && (
@@ -419,12 +434,24 @@ export default function AeoApp() {
                   Confirming this email resets account access and signs out other sessions.
                 </p>
               )}
-              <p className={styles.quiet}>Candidate release · billing is off</p>
+              {!proof && (
+                <button
+                  type="button"
+                  className={styles.textButton}
+                  onClick={() => {
+                    setAccountScreen(false);
+                    setError('');
+                    setNotice('');
+                  }}
+                >
+                  Back to website check
+                </button>
+              )}
             </form>
           </section>
         </div>
         <footer className={styles.authFooter}>
-          AEO v2 · Built on GEOInflow and Umami.{' '}
+          Built on GEOInflow and Umami.{' '}
           <a href="https://github.com/heathermhuang/aeo-v2">Source & licenses</a>
         </footer>
       </main>
@@ -437,31 +464,32 @@ export default function AeoApp() {
       <aside className={styles.sidebar}>
         <a href="/" className={styles.wordmark}>
           aeo<span>↗</span>
-          <small>WORKSPACE</small>
         </a>
-        <label className={styles.workspaceLabel}>
-          Workspace
-          <select
-            aria-label="Workspace"
-            disabled={busy}
-            value={workspaceId}
-            onChange={e => {
-              generation.current++;
-              setReport(null);
-              setSites([]);
-              setSiteId('');
-              setConnection(null);
-              setPeople([]);
-              setWorkspaceId(e.target.value);
-            }}
-          >
-            {session.workspaces.map(w => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {session.workspaces.length > 1 && (
+          <label className={styles.workspaceLabel}>
+            Team
+            <select
+              aria-label="Team"
+              disabled={busy}
+              value={workspaceId}
+              onChange={e => {
+                generation.current++;
+                setReport(null);
+                setSites([]);
+                setSiteId('');
+                setConnection(null);
+                setPeople([]);
+                setWorkspaceId(e.target.value);
+              }}
+            >
+              {session.workspaces.map(w => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className={styles.siteControl}>
           <label>
             Website
@@ -517,11 +545,7 @@ export default function AeoApp() {
         <div className={styles.sideBottom}>
           <button onClick={() => setView('members')}>
             <Users size={17} />
-            Members
-          </button>
-          <button onClick={() => setView('archive')}>
-            <Download size={17} />
-            V1 reports
+            Team access
           </button>
           <span title={session.user.email}>{session.user.email}</span>
           <button
@@ -533,25 +557,23 @@ export default function AeoApp() {
                 setSites([]);
                 setWorkspaceId('');
                 setSession(null);
+                setAccountScreen(false);
               })
             }
           >
             <LogOut size={16} />
             Sign out
           </button>
-          <small>AEO v2 · Candidate</small>
         </div>
       </aside>
       <div className={styles.content}>
         <header className={styles.header}>
           <div>
-            <span className={styles.breadcrumb}>
-              {selected?.domain || workspace?.name || 'Your workspace'}
-            </span>
+            <span className={styles.breadcrumb}>{selected?.domain || 'Your websites'}</span>
             <h1>{heading}</h1>
           </div>
           <div className={styles.headerActions}>
-            {siteId && !['members', 'archive'].includes(view) && (
+            {siteId && view !== 'members' && (
               <>
                 <button
                   className={styles.secondary}
@@ -603,7 +625,13 @@ export default function AeoApp() {
               <form onSubmit={addSite} className={styles.inlineForm}>
                 <label>
                   Website domain
-                  <input name="domain" placeholder="yourcompany.com" required autoFocus />
+                  <input
+                    name="domain"
+                    defaultValue={startingDomain}
+                    placeholder="yourcompany.com"
+                    required
+                    autoFocus
+                  />
                 </label>
                 <button className={styles.primary} disabled={busy}>
                   Add website
@@ -611,11 +639,11 @@ export default function AeoApp() {
                 </button>
               </form>
               <p className={styles.quiet}>
-                Use a website you control. Up to {session.limits.sites} websites in this candidate.
+                Use a website you control. You can add up to {session.limits.sites} websites.
               </p>
             </section>
           )}
-          {!sites.length && !loading && !adding && !['members', 'archive'].includes(view) && (
+          {!sites.length && !loading && !adding && view !== 'members' && (
             <section className={styles.empty}>
               <div className={styles.emptyIcon}>
                 <Globe size={30} />
@@ -1234,64 +1262,13 @@ export default function AeoApp() {
               </section>
             </>
           )}
-          {view === 'archive' && (
-            <section className={styles.setup}>
-              <h2>Your original evidence stays separate.</h2>
-              <p>
-                These are historical v1 reports. Their measurements have not been revalidated as v2
-                observations. Downloads remove private access material; original records and source
-                hashes are retained.
-              </p>
-              <p>
-                <a href="https://aeo.io/legacy">Open the V1 workspace</a> to access existing reports
-                and private links with your original sign-in.
-              </p>
-              {!historical.length && (
-                <p>
-                  No historical reports are linked to this verified email. Imports and quarantined
-                  identities need operator review; creating an account does not claim unverified v1
-                  data.
-                </p>
-              )}
-              <div className={styles.sourceRows}>
-                {historical.map(r => (
-                  <div key={r.sourceId + r.id}>
-                    <span>
-                      {r.id}
-                      <small>{stamp(r.createdAt)} · Historical v1 evidence</small>
-                    </span>
-                    <button
-                      className={styles.secondary}
-                      onClick={() =>
-                        perform(async () => {
-                          const payload = await api(`legacy/reports/${r.sourceId}/${r.id}`);
-                          const url = URL.createObjectURL(
-                            new Blob([JSON.stringify(payload, null, 2)], {
-                              type: 'application/json',
-                            }),
-                          );
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = 'aeo-v1-historical-report.json';
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        })
-                      }
-                    >
-                      Download
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
           {view === 'members' && (
             <>
               <section className={styles.pageIntro}>
-                <h2>A private workspace for your team.</h2>
+                <h2>Choose who can access your websites.</h2>
                 <p>
-                  Members see only the websites in this workspace. Removed access is checked on the
-                  next request.
+                  Invited people can see the websites shared with this team. Removed access is
+                  checked on the next request.
                 </p>
               </section>
               <div className={styles.sourceRows}>
@@ -1334,7 +1311,7 @@ export default function AeoApp() {
                           body: JSON.stringify({ email: f.get('email'), role: f.get('role') }),
                         });
                         setPeople((await api(`workspaces/${workspaceId}/members`)).members);
-                        setNotice('Workspace access granted.');
+                        setNotice('Team access granted.');
                       });
                     }}
                   >
@@ -1350,7 +1327,7 @@ export default function AeoApp() {
                       </select>
                     </label>
                     <button className={styles.primary} disabled={busy}>
-                      Grant workspace access
+                      Grant team access
                     </button>
                   </form>
                 </details>
@@ -1359,9 +1336,9 @@ export default function AeoApp() {
           )}
           <footer className={styles.footer}>
             <span>
-              {report && !['members', 'archive'].includes(view)
+              {report && view !== 'members'
                 ? `${report.window} · Updated ${stamp(report.generatedAt)}`
-                : 'Private workspace · Billing is off'}
+                : 'Your website data is private'}
             </span>
             <a href="https://github.com/heathermhuang/aeo-v2">Built on GEOInflow & Umami</a>
           </footer>
