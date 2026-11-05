@@ -46,7 +46,7 @@ export function AiConfigPage() {
     [error, setError] = useState(''),
     [actionSpace, setActionSpace] = useState('');
   const data = catalog.data;
-  const providerLabels = new Map(
+  const providerLabels = new Map<string, string>(
     data?.templates.map(template => [
       template.provider,
       aiTemplateDisplayName(template, i18n.system),

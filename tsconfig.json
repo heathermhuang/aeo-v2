@@ -41,6 +41,8 @@
   ],
   "exclude": [
     "node_modules",
+    ".local",
+    "deploy/aeo-edge",
     "./playwright.config.ts",
     "./playwright.api.config.ts",
     "tests/e2e",

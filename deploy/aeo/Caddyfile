@@ -1,0 +1,51 @@
+(aeo_ingress_headers) {
+    header_up -CF-*
+    header_up -X-Vercel-*
+    header_up -CloudFront-Viewer-*
+    header_up -EO-*
+    header_up -X-Umami-IP
+    header_up -X-Umami-Client-IP
+    header_up -X-Umami-Country
+    header_up -X-Umami-Region
+    header_up -X-Umami-City
+    header_up -X-Client-IP
+    header_up -True-Client-IP
+    header_up -Forwarded
+    header_up -Authorization
+    header_up -X-Aeo-*
+}
+{$AEO_STAGING_HOST} {
+    header X-Robots-Tag "noindex, nofollow, noarchive"
+    @intake path /api/send
+    request_body @intake {
+        max_size 128KB
+    }
+    # Only the edge's dedicated secret permits asserted visitor identity.
+    @edge {
+        header X-Aeo-Origin-Key {$AEO_EDGE_ORIGIN_KEY}
+        header X-Aeo-Public-Host aeo.io
+        header X-Aeo-Public-Host staging.aeo.io
+    }
+    handle @edge {
+        reverse_proxy app:3000 {
+            import aeo_ingress_headers
+            header_up Host {http.request.header.X-Aeo-Public-Host}
+            header_up X-Forwarded-Host {http.request.header.X-Aeo-Public-Host}
+            header_up X-Forwarded-Proto https
+            header_up X-Real-IP {http.request.header.X-Aeo-Client-IP}
+            header_up X-Forwarded-For {http.request.header.X-Aeo-Client-IP}
+        }
+    }
+    handle {
+        @private not path /script.js /api/send
+        basic_auth @private {
+            staging {$AEO_STAGING_PASSWORD_HASH}
+        }
+        reverse_proxy app:3000 {
+            import aeo_ingress_headers
+            # Direct requests have socket-derived identity; spoofed headers are ignored.
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+        }
+    }
+}

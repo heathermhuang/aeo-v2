@@ -101,6 +101,17 @@
       "removalCondition": "Remove when an upstream extension point provides this behavior and the registered regression checks pass"
     },
     {
+      "path": ".github/workflows/liekan-public-history.yml",
+      "purpose": "Enforce independent GEOInflow ancestry for public source publication",
+      "tests": [
+        "node --test tests/liekan/public-history.test.mjs tests/liekan/pre-push.test.mjs",
+        "node scripts/liekan-static-check.mjs"
+      ],
+      "owner": "Liekan release maintenance",
+      "constraint": "Use trusted base code to inspect candidate ancestry with read-only permissions and report the required status in a separate job",
+      "removalCondition": "Remove when an equivalent server-side public ancestry gate protects independent publication"
+    },
+    {
       "path": ".github/workflows/stale-issues.yml",
       "purpose": "Keep inherited automatic issue closure restricted to the upstream repository",
       "tests": [
@@ -307,7 +318,7 @@
     },
     {
       "path": "next.config.ts",
-      "purpose": "Typed production build, local font/branding and explicit agent rule control; externalize the pg driver for the website handle proxy; preserve private no-store headers for crawler recognition, candidates, administrator source health, crawler context and private traffic evidence; preserve private no-store headers for browser cache authorization manifests; preserve private no-store responses for durable analysis tasks, acceleration management and opted-in native aggregates",
+      "purpose": "Typed production build, local font/branding and explicit agent rule control; externalize the pg driver for the website handle proxy; preserve private no-store headers for crawler recognition, candidates, administrator source health, crawler context and private traffic evidence; preserve private no-store headers for browser cache authorization manifests; preserve private no-store responses for durable analysis tasks, acceleration management, instance and website storage cleanup, and opted-in native aggregates",
       "tests": [
         "pnpm liekan:verify",
         "Liekan Docker and visual acceptance",

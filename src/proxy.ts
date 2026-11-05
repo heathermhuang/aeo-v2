@@ -1,18 +1,10 @@
-import type { NextRequest } from 'next/server';
-import { rewriteWebsiteHandle } from '@/lib/liekan/website-handle-proxy';
-
-// Local development proxy: rewrite numeric website handles on upstream API paths.
-// The Docker build replaces this file with docker/proxy.ts, which chains the same
-// rewrite together with the upstream CSP and collect-endpoint handling.
-export async function proxy(request: NextRequest) {
-  return rewriteWebsiteHandle(request);
+import { NextResponse, type NextRequest } from 'next/server';
+import { isAeoSurface } from '@/lib/aeo/surface';
+export function proxy(request: NextRequest) {
+  if (isAeoSurface(request.nextUrl.pathname)) return NextResponse.next();
+  return NextResponse.json(
+    { error: 'This page could not be found.' },
+    { status: 404, headers: { 'Cache-Control': 'private, no-store' } },
+  );
 }
-
-export const config = {
-  matcher: [
-    '/api/websites/:path*',
-    '/api/realtime/:path*',
-    '/compat/api/websites/:path*',
-    '/compat/api/realtime/:path*',
-  ],
-};
+export const config = { matcher: '/:path*' };

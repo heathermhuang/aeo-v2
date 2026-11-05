@@ -96,6 +96,15 @@ const headers = [
   },
 ];
 
+// AEO session endpoints must never inherit the upstream API's cache policy.
+headers.push({
+  source: '/api/aeo/:path*',
+  headers: [
+    { key: 'Cache-Control', value: 'private, no-store' },
+    { key: 'Vary', value: 'Cookie' },
+  ],
+});
+
 if (isProd) {
   headers.push({
     source: TRACKER_SCRIPT,
@@ -220,6 +229,7 @@ const crawlerPrivatePaths = [
   '/liekan/history-repair/:path*',
   '/liekan/cache-manifest/:path*',
   '/liekan/analytics-acceleration/:path*',
+  '/liekan/storage/:path*',
   '/liekan/admin/crawler-sources/:path*',
   '/liekan/admin/crawler-registry/:path*',
   '/liekan/crawler-registry/:path*',
@@ -242,6 +252,7 @@ const crawlerPrivatePaths = [
     'history-repair',
     'geo-weight',
     'analytics-acceleration',
+    'storage',
     'analytics-jobs',
     'page-report',
     'analytics',
