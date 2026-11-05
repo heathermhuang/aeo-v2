@@ -220,7 +220,7 @@ export async function workspace(userId: string, teamId: string, write = false, c
     'SELECT t.team_id AS id,t.name,m.role FROM team t JOIN team_user m ON m.team_id=t.team_id JOIN "user" u ON u.user_id=m.user_id AND u.deleted_at IS NULL WHERE t.team_id=$1 AND m.user_id=$2 AND t.deleted_at IS NULL',
     [teamId, userId],
   );
-  if (!rows.length) throw new AeoError(404, 'Workspace not found.');
+  if (!rows.length) throw new AeoError(404, 'Team not found.');
   if (write && !['team-owner', 'team-manager'].includes(rows[0].role))
     throw new AeoError(403, 'Your role has read-only access.');
   return rows[0];

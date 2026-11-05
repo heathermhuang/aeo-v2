@@ -45,9 +45,9 @@ export async function createSite(userId: string, input: unknown) {
       [data.workspaceId],
     );
     if (rows.some(r => r.domain === host))
-      throw new AeoError(409, 'This website is already in your workspace.');
+      throw new AeoError(409, 'This website has already been added to your team.');
     if (rows.length >= LIMITS.sites)
-      throw new AeoError(429, `This workspace supports ${LIMITS.sites} websites.`);
+      throw new AeoError(429, `You can add up to ${LIMITS.sites} websites to this team.`);
     const id = randomUUID();
     await tx.query(
       'INSERT INTO website(website_id,name,domain,team_id,created_by,created_at) VALUES($1,$2,$3,$4,$5,now())',
@@ -79,12 +79,12 @@ export async function addMember(userId: string, teamId: string, input: unknown) 
     await tx.query('SELECT team_id FROM team WHERE team_id=$1 FOR UPDATE', [teamId]);
     const owner = await workspace(userId, teamId, true, tx);
     if (owner.role !== 'team-owner')
-      throw new AeoError(403, 'Only the workspace owner can manage members.');
+      throw new AeoError(403, 'Only the team owner can manage access.');
     const count = (
       await tx.query('SELECT count(*)::int AS n FROM team_user WHERE team_id=$1', [teamId])
     ).rows[0].n;
     if (count >= LIMITS.members)
-      throw new AeoError(429, 'This workspace has reached its member limit.');
+      throw new AeoError(429, 'This team has reached its member limit.');
     const member = (
       await tx.query(
         'SELECT u.user_id FROM "user" u JOIN aeo_identity i ON i.user_id=u.user_id AND i.email=u.username WHERE u.username=$1 AND u.deleted_at IS NULL',
@@ -110,7 +110,7 @@ export async function removeMember(userId: string, teamId: string, memberId: str
     await tx.query('SELECT team_id FROM team WHERE team_id=$1 FOR UPDATE', [teamId]);
     const owner = await workspace(userId, teamId, true, tx);
     if (owner.role !== 'team-owner' || userId === memberId)
-      throw new AeoError(403, 'The workspace owner must retain access.');
+      throw new AeoError(403, 'The team owner must retain access.');
     await tx.query(`DELETE FROM team_user WHERE team_id=$1 AND user_id=$2 AND role<>'team-owner'`, [
       teamId,
       memberId,
@@ -281,7 +281,7 @@ export async function saveAnswer(
       [website.workspaceId],
     );
     if (count.n >= LIMITS.answerImportsPerDay)
-      throw new AeoError(429, 'This workspace has reached its daily answer limit.');
+      throw new AeoError(429, 'This team has reached its daily answer limit.');
     const id = randomUUID();
     await tx.query(
       'INSERT INTO aeo_answer_run(id,website_id,created_by,question,source_kind,method,answer,claimed_observed_at,content_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
@@ -327,7 +327,7 @@ export async function importEvidence(userId: string, siteId: string, kind: strin
         error.status === 429
           ? 'This website has reached its import allowance. Try again later.'
           : error.status === 403
-            ? 'Your workspace access changed. Reload and try again.'
+            ? 'Your team access changed. Reload and try again.'
             : error.status === 409
               ? 'This import conflicts with current processing. Refresh before trying again.'
               : kind === 'logs'
