@@ -72,3 +72,8 @@ test('v1 SQL import cannot attach a filesystem database', async () => {
   assert.notEqual(run.status, 0, 'filesystem attach refused');
   await assert.rejects(access(outside), { code: 'ENOENT' });
 });
+
+test('archive import refuses a promoted production origin before reading data or connecting',()=>{
+ const run=spawnSync(process.execPath,['scripts/aeo/import-v1.mjs','unused-synthetic.json','aeo_v2_staging','a'.repeat(64)],{encoding:'utf8',env:{...process.env,AEO_PUBLIC_URL:'https://aeo.io',DATABASE_URL:'postgresql://synthetic:synthetic@127.0.0.1:1/aeo_v2_staging'}});
+ assert.notEqual(run.status,0);assert.match(run.stderr,/Production archive import is not enabled/);assert.ok(!run.stderr.includes('ECONNREFUSED'));
+});

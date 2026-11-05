@@ -57,6 +57,8 @@ if (!file || !expectedDatabase || !expectedSnapshot)
   throw new Error(
     'Usage: import-v1.mjs archive.json expected-database-name expected-snapshot-sha256',
   );
+if (process.env.AEO_PUBLIC_URL && new URL(process.env.AEO_PUBLIC_URL).origin === 'https://aeo.io')
+  throw new Error('Production archive import is not enabled; use the private pre-cutover target.');
 const url = new URL(process.env.DATABASE_URL);
 if (
   url.pathname !== '/' + expectedDatabase ||
