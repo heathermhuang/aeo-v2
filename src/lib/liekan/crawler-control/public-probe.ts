@@ -34,8 +34,10 @@ export async function publicCrawlerProbe(
   hostname: string,
   path: string,
   checkId: string,
-  readRobots = false,
+  readBody: boolean | 'html' = false,
 ): Promise<PublicProbeResult> {
+  // Keep robots diagnostics at 256 KiB; public HTML pages have their own bounded budget.
+  const bodyLimit = readBody === 'html' ? 2 * 1024 * 1024 : 262144;
   let url = probeUrl(hostname, path);
   for (let redirects = 0; redirects <= 3; redirects++) {
     const resolver = new Resolver({ timeout: 2000, tries: 1 });
@@ -64,7 +66,12 @@ export async function publicCrawlerProbe(
             },
             headers: {
               'user-agent': `Liekan-Crawler-Check/${checkId}`,
-              accept: readRobots ? 'text/plain' : '*/*',
+              accept:
+                readBody === 'html'
+                  ? 'text/html,application/xhtml+xml'
+                  : readBody
+                    ? 'text/plain'
+                    : '*/*',
             },
           },
           response => {
@@ -80,20 +87,20 @@ export async function publicCrawlerProbe(
                 path: url.pathname,
                 status,
                 headers,
-                body: readRobots ? Buffer.concat(chunks).toString('utf8') : null,
+                body: readBody ? Buffer.concat(chunks).toString('utf8') : null,
                 redirects,
                 location,
               });
-            if (!readRobots || (status >= 300 && status < 400)) {
+            if (!readBody || (status >= 300 && status < 400)) {
               complete();
               response.destroy();
               return;
             }
             response.on('data', (chunk: Buffer) => {
               size += chunk.length;
-              if (size > 262144) {
+              if (size > bodyLimit) {
+                reject(new LiekanError('公共页面超过检查上限', 413, 'public-probe-body-limit'));
                 response.destroy();
-                reject(new LiekanError('robots 文件超过检查上限', 413));
               } else chunks.push(chunk);
             });
             response.on('end', complete);

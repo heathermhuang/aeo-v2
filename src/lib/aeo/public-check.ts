@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AeoError, domain } from './contracts';
 import { publicCrawlerProbe, type PublicProbeResult } from '../liekan/crawler-control/public-probe';
+import { LiekanError } from '../liekan/upstream/errors';
 
 export function publicCheckUrl(input: unknown) {
   const { url: value } = z
@@ -39,13 +40,17 @@ export async function checkPublicWebsite(
 ): Promise<PublicCheck> {
   const target = publicCheckUrl(input);
   const results = await Promise.allSettled([
-    probe(target.hostname, target.path, 'AEO-public-page', true),
+    probe(target.hostname, target.path, 'AEO-public-page', 'html'),
     probe(target.hostname, '/robots.txt', 'AEO-public-robots', true),
   ]);
   const page: PublicProbeResult | undefined =
     results[0].status === 'fulfilled' ? results[0].value : undefined;
   const robots: PublicProbeResult | undefined =
     results[1].status === 'fulfilled' ? results[1].value : undefined;
+  const pageTooLarge =
+    results[0].status === 'rejected' &&
+    results[0].reason instanceof LiekanError &&
+    results[0].reason.code === 'public-probe-body-limit';
   const html =
     page?.status === 200 &&
     /text\/html|application\/xhtml\+xml/i.test(page.headers['content-type'] || '')
@@ -66,9 +71,12 @@ export async function checkPublicWebsite(
       : {
           label: 'Page response',
           state: 'unknown',
-          detail: 'We could not complete a safe public HTTPS request.',
-          action:
-            'Check that this exact hostname is reachable over HTTPS. Cross-host redirects and responses over 256 KiB are outside this quick check.',
+          detail: pageTooLarge
+            ? 'The page exceeds this checker’s 2 MiB HTML limit. Its content was not inspected.'
+            : 'AEO could not read this page. This does not establish that your website is unavailable.',
+          action: pageTooLarge
+            ? 'Try a smaller page on this website. You do not need to change its title based on this incomplete check.'
+            : 'Open the URL in your browser. If it redirects to another hostname, try that final HTTPS URL. AEO cannot follow cross-host redirects or inspect pages that block this checker.',
         },
   );
   const title = html
@@ -84,9 +92,12 @@ export async function checkPublicWebsite(
         : title
           ? 'A non-empty title is present in the HTML response.'
           : 'No non-empty page title was found in the HTML response.',
-    action: title
-      ? 'Make sure the title names what this page offers in plain language.'
-      : 'Give the page a clear, descriptive title in its initial HTML. JavaScript-rendered changes are not inspected here.',
+    action:
+      html === null
+        ? 'Resolve the page-response check first. AEO has no evidence that the title needs changing.'
+        : title
+          ? 'Make sure the title names what this page offers in plain language.'
+          : 'Give the page a clear, descriptive title in its initial HTML. JavaScript-rendered changes are not inspected here.',
   });
   findings.push({
     label: 'Crawl instructions',

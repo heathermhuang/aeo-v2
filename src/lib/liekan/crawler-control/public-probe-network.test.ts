@@ -99,3 +99,23 @@ it('caps the fetched robots body and aborts oversized responses', async () => {
     publicCrawlerProbe('example.com', '/robots.txt', 'test', true),
   ).rejects.toMatchObject({ status: 413 });
 });
+it('reads a 284 KB HTML page using a separate bounded HTML mode', async () => {
+  const html = '<title>Measurable AI</title>' + ' '.repeat(283851);
+  response(200, { 'content-type': 'text/html' }, [Buffer.from(html)]);
+  expect(await publicCrawlerProbe('example.com', '/', 'test', 'html')).toMatchObject({
+    status: 200,
+    body: html,
+  });
+  expect(mocks.request.mock.calls[0][1].headers.accept).toBe('text/html,application/xhtml+xml');
+});
+it('accepts the HTML byte limit and rejects one byte beyond it', async () => {
+  response(200, {}, [Buffer.alloc(2 * 1024 * 1024)]);
+  expect((await publicCrawlerProbe('example.com', '/', 'test', 'html')).body?.length).toBe(
+    2 * 1024 * 1024,
+  );
+  response(200, {}, [Buffer.alloc(2 * 1024 * 1024 + 1)]);
+  await expect(publicCrawlerProbe('example.com', '/', 'test', 'html')).rejects.toMatchObject({
+    status: 413,
+    code: 'public-probe-body-limit',
+  });
+});
