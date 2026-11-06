@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { expect, it, vi } from 'vitest';
 import { checkPublicWebsite, publicCheckUrl } from './public-check';
+import { LiekanError } from '../liekan/upstream/errors';
 
 it('accepts a full public HTTPS page URL and excludes query and fragment secrets', () => {
   expect(publicCheckUrl({ url: 'https://aeo.io/docs?token=private#proof' })).toEqual({
@@ -50,13 +51,12 @@ it('keeps failed fetches and non-HTML responses unknown instead of reporting mis
   const result = await checkPublicWebsite({ url: 'aeo.io' }, failed);
   expect(result.findings.every(f => f.state === 'unknown')).toBe(true);
   expect(JSON.stringify(result)).not.toContain('private diagnostic');
-  const binary = vi
-    .fn()
-    .mockResolvedValue({
-      status: 200,
-      headers: { 'content-type': 'application/pdf' },
-      body: '<title>not HTML</title>',
-    });
+  expect(result.findings[1].action).not.toMatch(/Give the page|descriptive title/);
+  const binary = vi.fn().mockResolvedValue({
+    status: 200,
+    headers: { 'content-type': 'application/pdf' },
+    body: '<title>not HTML</title>',
+  });
   expect((await checkPublicWebsite({ url: 'aeo.io' }, binary)).findings[1].state).toBe('unknown');
 });
 it('reports an observed HTML title without returning untrusted markup', async () => {
@@ -71,4 +71,17 @@ it('reports an observed HTML title without returning untrusted markup', async ()
   const result = await checkPublicWebsite({ url: 'aeo.io' }, probe);
   expect(result.findings.map(f => f.state)).toEqual(['found', 'found', 'found']);
   expect(JSON.stringify(result)).not.toContain('<img');
+  expect(probe.mock.calls[0][3]).toBe('html');
+  expect(probe.mock.calls[1][3]).toBe(true);
+});
+it('explains the checker body limit without blaming the website or suggesting a title change', async () => {
+  const probe = vi
+    .fn()
+    .mockRejectedValue(new LiekanError('private diagnostic', 413, 'public-probe-body-limit'));
+  const result = await checkPublicWebsite({ url: 'example.com' }, probe);
+  expect(result.findings[0]).toMatchObject({ state: 'unknown' });
+  expect(result.findings[0].detail).toContain('2 MiB');
+  expect(result.findings[0].action).toContain('smaller page');
+  expect(result.findings[1].action).not.toContain('Give the page');
+  expect(JSON.stringify(result)).not.toContain('private diagnostic');
 });
