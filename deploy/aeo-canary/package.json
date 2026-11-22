@@ -1,0 +1,8 @@
+{
+  "name": "aeo-production-signin-canary",
+  "private": true,
+  "dependencies": {
+    "playwright": "1.63.0",
+    "postal-mime": "3.0.0"
+  }
+}
