@@ -5,6 +5,8 @@ packages:
   - '!tmp/**'
   - '!outputs/**'
   - '!test-results/**'
+  # The standalone production monitor has its own small npm lockfile.
+  - '!deploy/aeo-canary'
 allowBuilds:
   '@parcel/watcher': false
   '@prisma/engines': true

@@ -1,0 +1,13 @@
+{
+  "name": "aeo-v2-canary-mail",
+  "main": "mailbox.mjs",
+  "compatibility_date": "2026-11-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "durable_objects": {
+    "bindings": [{ "name": "INBOX", "class_name": "CanaryInbox" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CanaryInbox"] }],
+  "observability": { "enabled": false }
+}
