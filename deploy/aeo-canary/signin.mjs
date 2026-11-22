@@ -102,14 +102,20 @@ async function verifyRevoked(cookie) {
   requireCheck(response.status === 401);
 }
 
-async function completeProof(page, link) {
+async function completeProof(link) {
+  stage = 'email-link-open';
+  // Open a new document, just as an email client would, so the app processes the fragment.
+  const page = await newPage();
   await page.goto(link, { waitUntil: 'domcontentloaded' });
   await page.getByRole('heading', { name: 'Choose your password.' }).waitFor();
   requireCheck(page.url() === origin + '/');
+  stage = 'email-link-before-confirmation';
   requireCheck((await page.request.get(api + 'session', { maxRedirects: 0 })).status() === 401);
+  stage = 'email-link-confirmation';
   await page.getByLabel('New password').fill(password);
   await submit(page, 'Confirm and continue', 'identity/complete', 200);
-  return session(page);
+  stage = 'authenticated-session';
+  return { page, ...await session(page) };
 }
 
 async function run() {
@@ -134,8 +140,7 @@ async function run() {
     await submit(initial, 'Send email link', 'signup', 202);
     stage = 'enrollment-delivery';
     const link = await deliveredLink('verify', after);
-    stage = 'enrollment-confirmation';
-    await completeProof(initial, link);
+    await completeProof(link);
     return;
   }
 
@@ -157,21 +162,20 @@ async function run() {
 
   stage = 'recovery-delivery';
   const link = await deliveredLink('recover', after);
-  stage = 'recovery-confirmation';
-  const recovered = await completeProof(requestPage, link);
+  const recovered = await completeProof(link);
   requireCheck(recovered.user === previous.user && recovered.cookie !== previous.cookie);
 
   stage = 'session-revocation';
   await verifyRevoked(previous.cookie);
   stage = 'single-use-proof';
-  const replay = await requestPage.request.post(api + 'identity/complete', {
+  const replay = await recovered.page.request.post(api + 'identity/complete', {
     headers: sameOrigin,
     data: { ...proofFromLink(link), password },
     maxRedirects: 0,
   });
   requireCheck(replay.status() === 401);
   stage = 'signout';
-  await submit(requestPage, 'Sign out', 'logout', 200, requestPage);
+  await submit(recovered.page, 'Sign out', 'logout', 200, recovered.page);
   await verifyRevoked(recovered.cookie);
   stage = 'release-readback';
   requireCheck(await readRelease() === release);
