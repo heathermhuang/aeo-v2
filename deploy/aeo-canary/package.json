@@ -3,6 +3,6 @@
   "private": true,
   "dependencies": {
     "playwright": "1.63.0",
-    "postal-mime": "3.0.0"
+    "postal-mime": "4.2.1"
   }
 }

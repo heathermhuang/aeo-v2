@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import PostalMime from 'postal-mime';
 import { proofFromLink } from './contract.mjs';
 
 const token = 'A'.repeat(43);
@@ -25,4 +26,19 @@ test('rejects redirects, credentials, query tokens, and ambiguous fragments', ()
     valid + '&purpose=recover&next=//example.com',
     'https://aeo.io/#account=short&purpose=recover',
   ]) assert.equal(proofFromLink(link), null);
+});
+
+test('reads a canonical proof from an AEO email stream', async () => {
+  const link = valid + '&purpose=recover';
+  const mail = [
+    'From: AEO.io <notifications@aeo.io>',
+    'Subject: Reset your AEO password',
+    'Content-Type: text/plain; charset=UTF-8',
+    '',
+    link,
+  ].join('\r\n');
+  const parsed = await PostalMime.parse(new Blob([mail]).stream());
+  assert.equal(parsed.from.address, 'notifications@aeo.io');
+  assert.equal(parsed.subject, 'Reset your AEO password');
+  assert.deepEqual(proofFromLink(parsed.text.trim()), { token, purpose: 'recover' });
 });
