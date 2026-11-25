@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { db } from '../../src/lib/aeo/db';
@@ -450,6 +451,64 @@ async function main() {
     '$2b$12$vsRMVhb92r68HRyLtP8U3uXEMc.9iCoxh1EQB6gfBB1xkXNZqXdby',
   ]);
   await request(reader, 'session', 'GET', undefined, 401);
+  if (process.env.AEO_CONTAINER_ACCEPTANCE === '1') {
+    const originSite = (
+      await request(b, 'sites', 'POST', { workspaceId: b.workspace, domain: 'aeo.io' }, 201)
+    ).body.id;
+    const row = {
+      time: new Date().toISOString(),
+      ip: '192.0.2.7',
+      path: '/robots.txt',
+      method: 'GET',
+      status: 200,
+      bytes: 17,
+      userAgent: 'GPTBot/1.0',
+    };
+    const collect = (siteId: string, actor: Actor, record = row) =>
+      spawnSync(
+        'docker',
+        [
+          'exec',
+          '-i',
+          '-e',
+          'AEO_PUBLIC_URL=https://aeo.io',
+          'aeo-app',
+          'node',
+          'dist/aeo-origin-crawl.mjs',
+          siteId,
+          actor.id!,
+        ],
+        { input: JSON.stringify([record]), encoding: 'utf8', timeout: 40000 },
+      );
+    check(collect(originSite, a).status === 1, 'origin importer rejects a different tenant owner');
+    check(collect(b.site!, b).status === 1, 'origin importer rejects domains other than aeo.io');
+    check(
+      collect(originSite, b, { ...row, path: '/api/aeo/session' }).status === 1,
+      'origin importer rejects private paths',
+    );
+    const first = collect(originSite, b);
+    check(
+      first.status === 0 && JSON.parse(first.stdout).inserted === 1,
+      'origin crawler event enters the database through the bundled CLI',
+    );
+    const replay = collect(originSite, b);
+    check(
+      replay.status === 0 && JSON.parse(replay.stdout).duplicate === true,
+      'replayed origin batch deduplicates after an interrupted acknowledgment',
+    );
+    const raw = await db.query('SELECT ip_masked,ip_hash FROM liekan_log WHERE website_id=$1', [
+      originSite,
+    ]);
+    check(
+      raw.rows.length === 1 && raw.rows[0].ip_masked !== row.ip && Boolean(raw.rows[0].ip_hash),
+      'origin import persists only a masked address and server hash',
+    );
+    const observed = (await request(b, `sites/${originSite}/summary`)).body;
+    check(
+      observed.crawl.requests === 1 && observed.crawl.verified === 0 && observed.crawl.lastImportAt,
+      'the owner report reads the origin claim and requires range proof',
+    );
+  }
   // Recreate an authenticated session for the logout check using the unaffected beta account.
   await request(b, 'logout', 'POST', {});
   await request(b, 'session', 'GET', undefined, 401);

@@ -1,0 +1,13 @@
+[Unit]
+Description=Import AEO.io origin crawler logs
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/aeo-v2
+StateDirectory=aeo-origin-crawl
+StateDirectoryMode=0700
+EnvironmentFile=/opt/aeo-v2/origin-crawl.env
+ExecStart=/usr/bin/python3 /opt/aeo-v2/import-origin-crawl.py /var/lib/aeo-origin-crawl ${AEO_ORIGIN_SITE_ID} ${AEO_ORIGIN_OWNER_ID}
+TimeoutStartSec=60

@@ -1,3 +1,8 @@
+{
+    log {
+        exclude http.log.access
+    }
+}
 (aeo_ingress_headers) {
     header_up -CF-*
     header_up -X-Vercel-*
@@ -20,6 +25,40 @@
     request_body @intake {
         max_size 128KB
     }
+    log aeo_crawler_origin {
+        no_hostname
+        output file /data/aeo-crawler-access.log {
+            mode 0600
+            roll_interval 1h
+            roll_size 1MiB
+            roll_keep 24
+            roll_keep_for 24h
+            roll_uncompressed
+        }
+        format filter {
+            wrap json
+            fields {
+                request delete
+                resp_headers delete
+                user_id delete
+            }
+        }
+    }
+    # Only allowlisted public origin requests traverse this logger. Keep the
+    # bounded crawler UA and the authenticated edge IP needed for verification.
+    @crawler_origin {
+        method GET HEAD
+        path / /robots.txt
+        header X-Aeo-Origin-Key {$AEO_EDGE_ORIGIN_KEY}
+        header X-Aeo-Public-Host aeo.io
+        header_regexp crawler_ip X-Aeo-Client-IP ^[0-9a-fA-F:.]{1,45}$
+        header_regexp crawler_ua User-Agent `(?i)^[ -~]{0,390}(bot|crawl|spider|slurp|fetcher|ChatGPT-User|Claude-User|Perplexity-User|Google-Extended|AEO-Crawl-Canary)[ -~]{0,90}$`
+    }
+    log_name @crawler_origin aeo_crawler_origin
+    log_append @crawler_origin <path {http.request.uri.path}
+    log_append @crawler_origin <method {http.request.method}
+    log_append @crawler_origin <ip {http.request.header.X-Aeo-Client-IP}
+    log_append @crawler_origin <ua {http.request.header.User-Agent}
     # Only the edge's dedicated secret permits asserted visitor identity.
     @edge {
         header X-Aeo-Origin-Key {$AEO_EDGE_ORIGIN_KEY}

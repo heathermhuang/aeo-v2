@@ -96,6 +96,7 @@ COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/db ./db
 COPY --from=builder /app/config ./config
 COPY --from=builder /app/dist/aeo-crawler-ranges.mjs ./dist/aeo-crawler-ranges.mjs
+COPY --from=builder /app/dist/aeo-origin-crawl.mjs ./dist/aeo-origin-crawl.mjs
 COPY --from=builder /app/LICENSE /app/THIRD_PARTY_NOTICES.md ./
 
 # Automatically leverage output traces to reduce image size
