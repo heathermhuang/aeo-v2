@@ -83,3 +83,35 @@ for review. It does not connect a site log source or create a log import.
 3. Enable the timer with `systemctl enable --now aeo-crawler-ranges.timer`.
    To stop recurring refreshes, disable the timer. The reviewed range history
    and active pointers are preserved.
+
+## Production origin crawler logs
+
+Caddy captures crawler-like `GET` and `HEAD` requests to `/` and `/robots.txt`
+that reach the AEO.io origin with its authenticated edge headers. CDN-only
+responses and traffic outside those paths are outside this source's coverage.
+The dedicated access log keeps the fixed route, method, status, timing, size,
+bounded User-Agent and trusted client IP. Caddy omits request and response
+headers, cookies and queries. The raw spool is mode 0600 and rotates hourly,
+with a 24-hour/24-file retention limit and 1 MiB per file. The existing crawler
+importer masks IP addresses before database storage.
+
+1. Deploy the qualified app image with both production Compose files.
+2. Bind `AEO_ORIGIN_SITE_ID` and `AEO_ORIGIN_OWNER_ID` in a root-only
+   `/opt/aeo-v2/origin-crawl.env` to the existing AEO.io site and verified team
+   owner. Install `import-origin-crawl.py`, the service and the timer from the
+   same revision. Validate the candidate Caddyfile in the ingress container
+   before reloading it. Preserve the previous config for rollback.
+3. Send a uniquely labeled synthetic `AEO-Crawl-Canary` request through
+   the public edge, run the service once, and verify the import and the owner
+   report. The scheduled job uses the existing tenant-scoped import ledger.
+   Enable the timer and check its next trigger and service result.
+4. Check `/var/lib/aeo-origin-crawl/state.json` for the last successful pass,
+   last submitted batch, rejects and rotation gaps. An idle pass can succeed
+   without collecting any requests. Cursors advance after acknowledged imports,
+   and retrying the same batch is safe. An unread rotated-file loss is counted
+   and causes the detecting invocation to fail. An import overlapping another
+   configured automatic source is rejected by the existing import contract.
+
+To stop collection, disable the timer and restore the prior Caddyfile. Retain
+the import history and cursor state for reconciliation. This deployment adds no
+separate log delivery service or public intake route.

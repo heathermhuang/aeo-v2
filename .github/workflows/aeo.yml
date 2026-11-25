@@ -58,6 +58,7 @@ jobs:
       - run: pnpm build:packages
       - run: pnpm exec tsc --noEmit
       - run: pnpm test:aeo
+      - run: python3 -m unittest discover -s tests/aeo -p test_origin_crawl.py
       - run: pnpm exec vitest run src/lib/aeo/public-check.test.ts src/lib/liekan/crawler-control/public-probe-network.test.ts
       - run: node --test tests/aeo/edge.test.mjs
       - run: pnpm exec tsx tests/aeo/identity.ts
@@ -115,7 +116,7 @@ jobs:
           node --input-type=module -e 'for(let i=0;i<90;i++){try{if((await fetch(process.env.AEO_PUBLIC_URL+"/api/aeo/health")).ok)process.exit(0);}catch{}await new Promise(r=>setTimeout(r,1000));}process.exit(1);'
           docker exec aeo-app test -s /app/LICENSE
           docker exec aeo-app test -s /app/THIRD_PARTY_NOTICES.md
-          pnpm exec tsx tests/aeo/acceptance.ts
+          AEO_CONTAINER_ACCEPTANCE=1 pnpm exec tsx tests/aeo/acceptance.ts
       - name: Verify standalone migration CLI in the actual image
         run: |
           docker exec -i aeo-app node --input-type=module <<'NODE'
@@ -129,6 +130,7 @@ jobs:
         run: |
           docker exec aeo-app node dist/aeo-crawler-ranges.mjs --status > .local/crawler-range-status.json
           jq -e '.sources | length > 0' .local/crawler-range-status.json
+      - run: bash tests/aeo/caddy-origin-smoke.sh
       - name: Export the qualified deployment image
         if: success() && github.event_name == 'pull_request'
         run: |

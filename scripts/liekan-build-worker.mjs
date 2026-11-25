@@ -33,8 +33,12 @@ await build({
 
 // The AEO image carries Next's traced dependencies, not the upstream worker's node_modules.
 await build({
-  entryPoints: ['src/lib/aeo/crawler-ranges-cli.ts'],
-  outfile: 'dist/aeo-crawler-ranges.mjs',
+  entryPoints: {
+    'aeo-crawler-ranges': 'src/lib/aeo/crawler-ranges-cli.ts',
+    'aeo-origin-crawl': 'src/lib/aeo/origin-crawl-cli.ts',
+  },
+  outdir: 'dist',
+  outExtension: { '.js': '.mjs' },
   bundle: true,
   platform: 'node',
   target: 'node22',
