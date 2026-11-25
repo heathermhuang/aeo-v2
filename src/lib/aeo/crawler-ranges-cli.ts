@@ -24,3 +24,5 @@ if (args.length !== 1 || !['--status', '--refresh'].includes(args[0])) {
     await prisma.client.$disconnect();
   }
 }
+
+export {};
