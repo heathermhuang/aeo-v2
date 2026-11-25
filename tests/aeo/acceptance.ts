@@ -287,6 +287,43 @@ async function main() {
     received.traffic.pageviews === null,
     'an automated receipt cannot manufacture qualified traffic',
   );
+  // Give both tagged and untagged fixture events otherwise valid browser evidence.
+  const operatorTag = 'aeo_operator_qualification';
+  for (const event of [
+    { name: null, referrer: 'chatgpt.com', tag: null },
+    { name: null, referrer: 'www.perplexity.ai', tag: operatorTag },
+    { name: 'signup_completed', referrer: null, tag: operatorTag },
+  ]) {
+    const eventId = randomUUID();
+    await db.query(
+      `INSERT INTO website_event(event_id,website_id,session_id,visit_id,url_path,hostname,event_type,event_name,referrer_domain,tag)
+       SELECT $1,website_id,session_id,$2,'/acceptance','alpha-aeo.com',$3,$4,$5,$6
+       FROM website_event WHERE website_id=$7 AND url_path='/acceptance' AND event_id<>$1
+       ORDER BY created_at,event_id LIMIT 1`,
+      [eventId, randomUUID(), event.name ? 2 : 1, event.name, event.referrer, event.tag, a.site],
+    );
+    await db.query(
+      `INSERT INTO liekan_event_quality(event_id,website_id,classification,source,reasons,rule_version,range_status,hostname)
+       VALUES($1,$2,'browser','browser',ARRAY[]::text[],'traffic-quality-v3','missing','alpha-aeo.com')`,
+      [eventId, a.site],
+    );
+    await db.query(
+      `INSERT INTO liekan_event_environment(event_id,website_id,scope,identity_version,identity_available)
+       VALUES($1,$2,'browser','cookieless-trusted-input-v2',true)`,
+      [eventId, a.site],
+    );
+  }
+  const evidence = (await request(a, `sites/${a.site}/export`)).body;
+  check(
+    evidence.traffic.receivedEvents === 2 &&
+      evidence.traffic.qualifiedEvents === 1 &&
+      evidence.traffic.pageviews === 1 &&
+      evidence.traffic.conversions === 0 &&
+      evidence.traffic.aiReferralVisits === 1 &&
+      evidence.referrals.length === 1 &&
+      evidence.referrals[0].source === 'chatgpt.com',
+    'reports exclude qualification receipts, pageviews, referrals and goals while keeping untagged traffic',
+  );
   const beta = (await request(b, `sites/${b.site}/summary`)).body;
   check(
     beta.answers.length === 0 && beta.crawl.inventory === 0,

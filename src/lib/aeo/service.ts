@@ -118,6 +118,7 @@ export async function removeMember(userId: string, teamId: string, memberId: str
     return { removed: true };
   });
 }
+const OPERATOR_TRAFFIC_TAG = 'aeo_operator_qualification';
 const AI_REFERRERS = [
   'chatgpt.com',
   'chat.openai.com',
@@ -151,12 +152,12 @@ export async function summary(userId: string, siteId: string) {
     { rows: jobs },
   ] = await Promise.all([
     db.query(
-      `SELECT count(*)::int AS "qualifiedEvents",count(*) FILTER(WHERE event_type=1)::int AS pageviews,count(distinct visit_id) FILTER(WHERE event_type=1 AND referrer_domain=ANY($2::text[]))::int AS "aiReferralVisits",count(*) FILTER(WHERE event_name=(SELECT goal_event FROM aeo_site_settings WHERE website_id=$1))::int AS conversions FROM liekan_effective_browser_event WHERE website_id=$1 AND created_at>=now()-interval '30 days'`,
-      [siteId, AI_REFERRERS.filter(v => v !== 'www.bing.com')],
+      `SELECT count(*)::int AS "qualifiedEvents",count(*) FILTER(WHERE event_type=1)::int AS pageviews,count(distinct visit_id) FILTER(WHERE event_type=1 AND referrer_domain=ANY($2::text[]))::int AS "aiReferralVisits",count(*) FILTER(WHERE event_name=(SELECT goal_event FROM aeo_site_settings WHERE website_id=$1))::int AS conversions FROM liekan_effective_browser_event WHERE website_id=$1 AND created_at>=now()-interval '30 days' AND tag IS DISTINCT FROM $3`,
+      [siteId, AI_REFERRERS.filter(v => v !== 'www.bing.com'), OPERATOR_TRAFFIC_TAG],
     ),
     db.query(
-      `SELECT count(*)::int AS events,max(created_at) AS "lastReceivedAt" FROM website_event WHERE website_id=$1 AND created_at>=now()-interval '30 days'`,
-      [siteId],
+      `SELECT count(*)::int AS events,max(created_at) AS "lastReceivedAt" FROM website_event WHERE website_id=$1 AND created_at>=now()-interval '30 days' AND tag IS DISTINCT FROM $2`,
+      [siteId, OPERATOR_TRAFFIC_TAG],
     ),
     db.query(
       `SELECT count(*) FILTER(WHERE ai_eligible IS TRUE)::int AS requests,count(distinct path) FILTER(WHERE ai_eligible IS TRUE)::int AS pages,count(*) FILTER(WHERE ai_eligible IS TRUE AND status>=400)::int AS errors,count(*) FILTER(WHERE ai_eligible IS TRUE AND verification='verified_range')::int AS verified,(SELECT count(*)::int FROM liekan_catalog WHERE website_id=$1) AS inventory,(SELECT max(imported_at) FROM liekan_import WHERE website_id=$1) AS "lastImportAt",(SELECT count(*)::int FROM liekan_catalog c WHERE c.website_id=$1 AND EXISTS(SELECT 1 FROM liekan_reporting_log l WHERE l.website_id=c.website_id AND l.path=c.path AND l.ai_eligible IS TRUE AND l.created_at>=now()-interval '30 days')) AS "observedInventoryPages" FROM liekan_reporting_log WHERE website_id=$1 AND created_at>=now()-interval '30 days'`,
@@ -167,8 +168,8 @@ export async function summary(userId: string, siteId: string) {
       [siteId],
     ),
     db.query(
-      `SELECT referrer_domain AS source,count(distinct visit_id)::int AS visits FROM liekan_effective_browser_event WHERE website_id=$1 AND created_at>=now()-interval '30 days' AND event_type=1 AND referrer_domain=ANY($2::text[]) GROUP BY referrer_domain ORDER BY visits DESC`,
-      [siteId, AI_REFERRERS.filter(v => v !== 'www.bing.com')],
+      `SELECT referrer_domain AS source,count(distinct visit_id)::int AS visits FROM liekan_effective_browser_event WHERE website_id=$1 AND created_at>=now()-interval '30 days' AND event_type=1 AND referrer_domain=ANY($2::text[]) AND tag IS DISTINCT FROM $3 GROUP BY referrer_domain ORDER BY visits DESC`,
+      [siteId, AI_REFERRERS.filter(v => v !== 'www.bing.com'), OPERATOR_TRAFFIC_TAG],
     ),
     db.query(
       'SELECT id,question,method,answer,source_kind AS "sourceKind",created_at AS "createdAt",claimed_observed_at AS "observedAt" FROM aeo_answer_run WHERE website_id=$1 ORDER BY created_at DESC LIMIT 30',
