@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh AEO official crawler IP ranges hourly
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=180
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -62,3 +62,24 @@ This is a staging runbook. Public replacement remains subject to
 
 The approved $12/month deployment and hosted evidence are recorded in
 [the staging qualification](../../docs/aeo/STAGING_QUALIFICATION_20261029.md).
+
+## Production crawler range freshness
+
+The production app must use both `compose.yml` and `compose.production.yml`.
+A release using the base file alone changes the app's canonical origin to
+staging and rejects production sign-in.
+
+The maintenance command uses the published crawler registry and the existing
+source leases. It retains range changes that exceed the qualification threshold
+for review. It does not connect a site log source or create a log import.
+
+1. Deploy the CI-qualified image with the production Compose override. Verify
+   the live sign-in canary and confirm the CLI works with
+   `docker compose -f compose.yml -f compose.production.yml exec -T app node dist/aeo-crawler-ranges.mjs --status`.
+2. From the production host, install the service and timer from the reviewed
+   revision. Run the service once and inspect the result in
+   `journalctl -u aeo-crawler-ranges.service -n 10`. Check current timestamps,
+   candidate changes and failed sources independently of the process exit code.
+3. Enable the timer with `systemctl enable --now aeo-crawler-ranges.timer`.
+   To stop recurring refreshes, disable the timer. The reviewed range history
+   and active pointers are preserved.

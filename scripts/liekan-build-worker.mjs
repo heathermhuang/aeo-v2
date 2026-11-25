@@ -1,7 +1,11 @@
 import { build } from 'esbuild';
 await build({
-  entryPoints: ['src/liekan-worker/main.ts'],
-  outfile: 'dist/liekan-worker.mjs',
+  entryPoints: {
+    'liekan-worker': 'src/liekan-worker/main.ts',
+    'aeo-crawler-ranges': 'src/lib/aeo/crawler-ranges-cli.ts',
+  },
+  outdir: 'dist',
+  outExtension: { '.js': '.mjs' },
   bundle: true,
   platform: 'node',
   target: 'node22',

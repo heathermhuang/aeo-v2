@@ -125,6 +125,10 @@ jobs:
           assert.notEqual(result.status, 0, 'CLI requires an explicit archive and target');
           assert.match(result.stderr, /Usage: import-v1.mjs/, 'standalone CLI and validator dependencies load');
           NODE
+      - name: Check crawler range maintenance against the isolated database
+        run: |
+          docker exec aeo-app node dist/aeo-crawler-ranges.mjs --status > .local/crawler-range-status.json
+          jq -e '.sources | length > 0' .local/crawler-range-status.json
       - name: Export the qualified deployment image
         if: success() && github.event_name == 'pull_request'
         run: |
